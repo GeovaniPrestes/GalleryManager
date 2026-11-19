@@ -1,26 +1,56 @@
 import { useState } from "react";
 
 import MainLayout from "./components/MainLayout";
+
+import Dashboard from "./pages/Dashboard";
+import Models from "./pages/Models";
 import Sets from "./pages/Sets";
 import Minisets from "./pages/Miniset";
-import Models from "./pages/Models";
+
 import type { SetRecord } from "./electron";
 
 function App() {
+    const [activePage, setActivePage] = useState("dashboard");
     const [selectedSet, setSelectedSet] = useState<SetRecord | null>(null);
 
-    return (
-        <MainLayout>
-            
-            {selectedSet ? (
+    function renderPage() {
+        if (selectedSet) {
+            return (
                 <Minisets
                     setId={selectedSet.id}
                     setName={selectedSet.name}
-                    onBackToSets={() => setSelectedSet(null)}
+                    onBackToSets={() => {
+                        setSelectedSet(null);
+                        setActivePage("sets");
+                    }}
                 />
-            ) : (
-                <Sets onOpenSet={setSelectedSet} />
-            )}
+            );
+        }
+
+        switch (activePage) {
+            case "dashboard":
+                return <Dashboard />;
+
+            case "models":
+                return <Models />;
+
+            case "sets":
+                return <Sets onOpenSet={setSelectedSet} />;
+
+            default:
+                return <Dashboard />;
+        }
+    }
+
+    return (
+        <MainLayout
+            activePage={selectedSet ? "minisets" : activePage}
+            onNavigate={(page) => {
+                setSelectedSet(null);
+                setActivePage(page);
+            }}
+        >
+            {renderPage()}
         </MainLayout>
     );
 }

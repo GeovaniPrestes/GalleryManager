@@ -1,4 +1,18 @@
-function Sidebar() {
+interface SidebarProps {
+    activePage: string;
+    onNavigate: (page: string) => void;
+}
+
+function Sidebar({ activePage, onNavigate }: SidebarProps) {
+    const menuItems = [
+        { id: "dashboard", label: "Visão geral" },
+        { id: "models", label: "Modelos" },
+        { id: "sets", label: "Sets" },
+        { id: "minisets", label: "Minisets" },
+        { id: "media", label: "Mídias" },
+        { id: "tags", label: "Tags" }
+    ];
+
     return (
         <aside className="sidebar">
             <div className="sidebar-brand">
@@ -9,29 +23,15 @@ function Sidebar() {
             <nav className="sidebar-nav">
                 <span className="nav-section">BIBLIOTECA</span>
 
-                <button className="nav-item active">
-                    Visão geral
-                </button>
-
-                <button className="nav-item">
-                    Modelos
-                </button>
-
-                <button className="nav-item">
-                    Sets
-                </button>
-
-                <button className="nav-item">
-                    Minisets
-                </button>
-
-                <button className="nav-item">
-                    Mídias
-                </button>
-
-                <button className="nav-item">
-                    Tags
-                </button>
+                {menuItems.map((item) => (
+                    <button
+                        key={item.id}
+                        className={`nav-item ${activePage === item.id ? "active" : ""}`}
+                        onClick={() => onNavigate(item.id)}
+                    >
+                        {item.label}
+                    </button>
+                ))}
             </nav>
         </aside>
     );

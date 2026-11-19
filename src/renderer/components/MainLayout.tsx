@@ -3,12 +3,21 @@ import Header from "./Header";
 
 interface MainLayoutProps {
     children: React.ReactNode;
+    activePage: string;
+    onNavigate: (page: string) => void;
 }
 
-function MainLayout({ children }: MainLayoutProps) {
+function MainLayout({
+    children,
+    activePage,
+    onNavigate
+}: MainLayoutProps) {
     return (
         <div className="app-layout">
-            <Sidebar />
+            <Sidebar
+                activePage={activePage}
+                onNavigate={onNavigate}
+            />
 
             <div className="main-area">
                 <Header />
