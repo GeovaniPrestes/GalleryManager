@@ -2,7 +2,11 @@ import { useEffect, useState } from "react";
 import type { SetRecord } from "../electron";
 import type { ModelRecord } from "../electron";
 
-function Sets() {
+interface SetsProps {
+    onOpenSet: (gallerySet: SetRecord) => void;
+}
+
+function Sets({ onOpenSet }: SetsProps) {
     const [sets, setSets] = useState<SetRecord[]>([]);
     const [models, setModels] = useState<ModelRecord[]>([]);
     const [selectedModels, setSelectedModels] = useState<number[]>([]);
@@ -202,6 +206,12 @@ function Sets() {
                                 <span className="set-folder">
                                     {gallerySet.folderPath}
                                 </span>
+                                <button
+                                    className="primary-button"
+                                    onClick={() => onOpenSet(gallerySet)}
+                                >
+                                    Abrir Set
+                                </button>
                                 <button
                                     className="secondary-button"
                                     onClick={() => handleEditSet(gallerySet)}

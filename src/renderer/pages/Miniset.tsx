@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 interface MinisetsProps {
     setId: number;
     setName: string;
+    onBackToSets: () => void;
 }
 
 interface MinisetRecord {
@@ -16,7 +17,7 @@ interface MinisetRecord {
     updatedAt: Date;
 }
 
-function Minisets({ setId, setName }: MinisetsProps) {
+function Minisets({ setId, setName, onBackToSets }: MinisetsProps) {
     const [minisets, setMinisets] = useState<MinisetRecord[]>([]);
     const [navigationPath, setNavigationPath] = useState<MinisetRecord[]>([]);
 
@@ -81,6 +82,12 @@ function Minisets({ setId, setName }: MinisetsProps) {
                     disabled={!currentParent}
                 >
                     Voltar
+                </button>
+                <button
+                    className="secondary-button"
+                    onClick={onBackToSets}
+                >
+                    Voltar aos Sets
                 </button>
             </div>
 
