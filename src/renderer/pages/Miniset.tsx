@@ -107,7 +107,14 @@ function Minisets({ setId, setName, onBackToSets }: MinisetsProps) {
                             onDoubleClick={() => handleOpenMiniset(miniset)}
                         >
                             <div className="set-thumbnail">
-                                <span>PASTA</span>
+                                {miniset.thumbnailPath ? (
+                                    <img
+                                        src={`media://thumbnail?path=${encodeURIComponent(miniset.thumbnailPath)}`}
+                                        alt={miniset.name}
+                                    />
+                                ) : (
+                                    <span>SEM THUMBNAIL</span>
+                                )}
                             </div>
 
                             <div className="set-info">

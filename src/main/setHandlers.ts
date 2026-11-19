@@ -4,6 +4,7 @@ import Model from "../database/models/Model";
 import SetModel from "../database/models/SetModel";
 import Miniset from "../database/models/Miniset";
 import { scanMinisetFolders } from "./services/minisetScanner";
+import { generateThumbnailFromFolder } from "./services/thumbnailGenerator";
 
 export function registerSetHandlers(): void {
 
@@ -260,11 +261,18 @@ export function registerSetHandlers(): void {
                     transaction
                 });
 
+                const thumbnailPath = miniset.thumbnailPath
+                    ?? await generateThumbnailFromFolder(folder.folderPath);
+
+                console.log("Miniset:", folder.name);
+                console.log("Thumbnail:", thumbnailPath);
+
                 await miniset.update(
                     {
                         name: folder.name,
                         parentId,
-                        setId
+                        setId,
+                        thumbnailPath
                     },
                     { transaction }
                 );
