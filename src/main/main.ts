@@ -1,0 +1,62 @@
+import { app, BrowserWindow } from "electron";
+import { join } from "node:path";
+import { registerModelHandlers } from "./modelHandlers";
+import { createDatabase } from "../database/connection";
+import Model from "../database/models/Model";
+import GallerySet from "../database/models/GallerySet";
+
+function createWindow(): void {
+    const mainWindow = new BrowserWindow({
+        width: 1400,
+        height: 900,
+        minWidth: 1000,
+        minHeight: 650,
+        backgroundColor: "#111318",
+
+        webPreferences: {
+            preload: join(__dirname, "preload.js"),
+            contextIsolation: true,
+            nodeIntegration: false
+        }
+    });
+
+    if (!app.isPackaged) {
+        mainWindow.loadURL("http://127.0.0.1:5173");
+    } else {
+        mainWindow.loadFile(
+            join(__dirname, "../../renderer/index.html")
+        );
+    }
+}
+
+app.whenReady().then(async () => {
+    try {
+        const database = createDatabase();
+
+        await database.authenticate();
+
+        await Model.sync();
+        await GallerySet.sync();
+
+        registerModelHandlers();
+
+        console.log("Banco SQLite conectado com sucesso!");
+        console.log("Tabela Models criada/verificada com sucesso!");
+    } catch (error) {
+        console.error("Erro ao conectar ao banco SQLite:", error);
+    }
+
+    createWindow();
+
+    app.on("activate", () => {
+        if (BrowserWindow.getAllWindows().length === 0) {
+            createWindow();
+        }
+    });
+});
+
+app.on("window-all-closed", () => {
+    if (process.platform !== "darwin") {
+        app.quit();
+    }
+});
