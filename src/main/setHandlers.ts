@@ -79,11 +79,31 @@ export function registerSetHandlers(): void {
             );
         }
 
+        const savedRelations = await SetModel.findAll({
+            where: {
+                setId: gallerySet.id
+            }
+        });
+
+        console.log("Modelos associados ao Set:", savedRelations.map(
+            (relation) => relation.toJSON()
+        ));
+
         return gallerySet.toJSON();
     });
 
     ipcMain.handle("sets:list", async () => {
         const sets = await GallerySet.findAll({
+            include: [
+                {
+                    model: Model,
+                    as: "models",
+                    attributes: ["id", "name"],
+                    through: {
+                        attributes: []
+                    }
+                }
+            ],
             order: [["name", "ASC"]]
         });
 

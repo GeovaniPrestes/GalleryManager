@@ -15,6 +15,10 @@ interface SetRecord {
     thumbnailPath: string | null;
     createdAt: Date;
     updatedAt: Date;
+    models: {
+        id: number;
+        name: string;
+    }[];
 }
 
 interface ElectronAPI {

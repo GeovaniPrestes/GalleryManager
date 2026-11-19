@@ -127,7 +127,17 @@ function Sets() {
                                 <p>
                                     {gallerySet.description || "Sem descrição"}
                                 </p>
+                                <div className="set-models">
+                                    <span>Modelos participantes:</span>
 
+                                    {gallerySet.models.length === 0 ? (
+                                        <p>Nenhum modelo associado</p>
+                                    ) : (
+                                        <p>
+                                            {gallerySet.models.map((model) => model.name).join(", ")}
+                                        </p>
+                                    )}
+                                </div>
                                 <span className="set-folder">
                                     {gallerySet.folderPath}
                                 </span>
