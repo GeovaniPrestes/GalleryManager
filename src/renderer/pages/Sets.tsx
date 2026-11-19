@@ -14,6 +14,7 @@ function Sets() {
     const [folderPath, setFolderPath] = useState("");
 
     const [saving, setSaving] = useState(false);
+    const [editingSet, setEditingSet] = useState<SetRecord | null>(null);
 
     useEffect(() => {
         async function loadSets() {
@@ -49,12 +50,22 @@ function Sets() {
         try {
             setSaving(true);
 
-            await window.electronAPI.createSet({
-                name: name.trim(),
-                description: description.trim(),
-                folderPath,
-                modelIds: selectedModels
-            });
+            if (editingSet) {
+                await window.electronAPI.updateSet({
+                    id: editingSet.id,
+                    name: name.trim(),
+                    description: description.trim(),
+                    folderPath,
+                    modelIds: selectedModels
+                });
+            } else {
+                await window.electronAPI.createSet({
+                    name: name.trim(),
+                    description: description.trim(),
+                    folderPath,
+                    modelIds: selectedModels
+                });
+            }
 
             const updatedSets = await window.electronAPI.listSets();
             setSets(updatedSets);
@@ -64,6 +75,7 @@ function Sets() {
             setFolderPath("");
             setSelectedModels([]);
             setShowForm(false);
+            setEditingSet(null);
 
         } catch (error) {
             console.error("Erro ao cadastrar set:", error);
@@ -72,6 +84,20 @@ function Sets() {
         } finally {
             setSaving(false);
         }
+    }
+
+    function handleEditSet(gallerySet: SetRecord) {
+        setEditingSet(gallerySet);
+
+        setName(gallerySet.name);
+        setDescription(gallerySet.description || "");
+        setFolderPath(gallerySet.folderPath);
+
+        setSelectedModels(
+            gallerySet.models.map((model) => model.id)
+        );
+
+        setShowForm(true);
     }
 
     function handleToggleModel(modelId: number) {
@@ -141,6 +167,12 @@ function Sets() {
                                 <span className="set-folder">
                                     {gallerySet.folderPath}
                                 </span>
+                                <button
+                                    className="secondary-button"
+                                    onClick={() => handleEditSet(gallerySet)}
+                                >
+                                    Editar
+                                </button>
                             </div>
                         </div>
                     ))}
@@ -151,7 +183,7 @@ function Sets() {
                 <div className="modal-overlay">
                     <div className="modal">
                         <div className="modal-header">
-                            <h2>Novo set</h2>
+                            <h2>{editingSet ? "Editar set" : "Novo set"}</h2>
 
                             <button
                                 className="modal-close"
@@ -242,7 +274,11 @@ function Sets() {
                                 onClick={handleCreateSet}
                                 disabled={saving}
                             >
-                                {saving ? "Salvando..." : "Salvar set"}
+                                {saving
+                                    ? "Salvando..."
+                                    : editingSet
+                                        ? "Salvar alterações"
+                                        : "Salvar set"}
                             </button>
                         </div>
                     </div>

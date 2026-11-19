@@ -24,6 +24,14 @@ contextBridge.exposeInMainWorld("electronAPI", {
         modelIds: number[];
     }) => ipcRenderer.invoke("sets:create", data),
 
+    updateSet: (data: {
+        id: number;
+        name: string;
+        description: string;
+        folderPath: string;
+        modelIds: number[];
+    }) => ipcRenderer.invoke("sets:update", data),
+
     listSets: () => ipcRenderer.invoke("sets:list"),
 
     selectSetFolder: () =>

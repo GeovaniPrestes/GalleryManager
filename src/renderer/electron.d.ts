@@ -44,6 +44,14 @@ interface ElectronAPI {
         modelIds: number[];
     }): Promise<SetRecord>;
 
+    updateSet(data: {
+        id: number;
+        name: string;
+        description: string;
+        folderPath: string;
+        modelIds: number[];
+    }): Promise<SetRecord>;
+
     listSets(): Promise<SetRecord[]>;
 
     selectSetFolder(): Promise<string | null>;
