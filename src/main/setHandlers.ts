@@ -1,5 +1,7 @@
 import { dialog, ipcMain } from "electron";
 import GallerySet from "../database/models/GallerySet";
+import Model from "../database/models/Model";
+import SetModel from "../database/models/SetModel";
 
 export function registerSetHandlers(): void {
 
@@ -20,6 +22,9 @@ export function registerSetHandlers(): void {
         const name = String(data?.name ?? "").trim();
         const description = String(data?.description ?? "").trim();
         const folderPath = String(data?.folderPath ?? "").trim();
+        const modelIds = Array.isArray(data?.modelIds)
+            ? data.modelIds.map(Number)
+            : [];
 
         if (!name) {
             throw new Error("O nome do set é obrigatório.");

@@ -1,10 +1,10 @@
 import MainLayout from "./components/MainLayout";
-import Models from "./pages/Models";
+import Sets from "./pages/Sets";
 
 function App() {
     return (
         <MainLayout>
-            <Models />
+            <Sets />
         </MainLayout>
     );
 }

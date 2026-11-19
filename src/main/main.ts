@@ -1,10 +1,11 @@
 import { app, BrowserWindow } from "electron";
 import { join } from "node:path";
-import { registerModelHandlers } from "./modelHandlers";
 import { createDatabase } from "../database/connection";
 import Model from "../database/models/Model";
+import { registerModelHandlers } from "./modelHandlers";
 import GallerySet from "../database/models/GallerySet";
 import { registerSetHandlers } from "./setHandlers";
+import SetModel from "../database/models/SetModel";
 
 function createWindow(): void {
     const mainWindow = new BrowserWindow({
@@ -33,17 +34,30 @@ function createWindow(): void {
 app.whenReady().then(async () => {
     try {
         const database = createDatabase();
-
         await database.authenticate();
+
+        Model.belongsToMany(GallerySet, {
+            through: SetModel,
+            foreignKey: "modelId",
+            otherKey: "setId",
+            as: "sets"
+        });
+
+        GallerySet.belongsToMany(Model, {
+            through: SetModel,
+            foreignKey: "setId",
+            otherKey: "modelId",
+            as: "models"
+        });
 
         await Model.sync();
         await GallerySet.sync();
+        await SetModel.sync();
 
         registerModelHandlers();
         registerSetHandlers();
 
         console.log("Banco SQLite conectado com sucesso!");
-        console.log("Tabela Models criada/verificada com sucesso!");
     } catch (error) {
         console.error("Erro ao conectar ao banco SQLite:", error);
     }
