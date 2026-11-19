@@ -271,13 +271,19 @@
 }
 
 .model-thumbnail {
-    height: 170px;
-    background: #242833;
+    width: 100%;
+    height: 180px;
+    overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #6b7280;
-    font-size: 11px;
+}
+
+.model-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
 }
 
 .model-info {

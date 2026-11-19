@@ -5,6 +5,7 @@ interface ModelRecord {
     thumbnailPath: string | null;
     createdAt: Date;
     updatedAt: Date;
+    folderPath: string | null;
 }
 
 interface SetRecord {
@@ -45,6 +46,7 @@ interface ElectronAPI {
         id: number;
         name: string;
         description: string;
+        folderPath: string;
     }): Promise<ModelRecord>;
 
     deleteModel(id: number): Promise<{ success: boolean }>;

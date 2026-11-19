@@ -92,7 +92,8 @@ function Models() {
             await window.electronAPI.updateModel({
                 id: editingModel.id,
                 name: name.trim(),
-                description: description.trim()
+                description: description.trim(),
+                folderPath: folderPath.trim(),
             });
 
             const updatedModels = await window.electronAPI.listModels();
@@ -265,7 +266,14 @@ function Models() {
                     {filteredModels.map((model) => (
                         <div className="model-card" key={model.id}>
                             <div className="model-thumbnail">
-                                <span>SEM THUMBNAIL</span>
+                                {model.thumbnailPath ? (
+                                    <img
+                                        src={`media://thumbnail?path=${encodeURIComponent(model.thumbnailPath)}`}
+                                        alt={model.name}
+                                    />
+                                ) : (
+                                    <span>SEM THUMBNAIL</span>
+                                )}
                             </div>
 
                             <div className="model-info">

@@ -44,6 +44,7 @@ export function registerModelHandlers(): void {
         const id = Number(data?.id);
         const name = String(data?.name ?? "").trim();
         const description = String(data?.description ?? "").trim();
+        const folderPath = String(data?.folderPath ?? "").trim();
 
         if (!Number.isInteger(id) || id <= 0) {
             throw new Error("ID do modelo inválido.");
@@ -61,7 +62,8 @@ export function registerModelHandlers(): void {
 
         await model.update({
             name,
-            description: description || null
+            description: description || null,
+            folderPath: folderPath || null,
         });
 
         return model.toJSON();

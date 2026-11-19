@@ -3,6 +3,7 @@ import { useState } from "react";
 import MainLayout from "./components/MainLayout";
 import Sets from "./pages/Sets";
 import Minisets from "./pages/Miniset";
+import Models from "./pages/Models";
 import type { SetRecord } from "./electron";
 
 function App() {
@@ -10,6 +11,8 @@ function App() {
 
     return (
         <MainLayout>
+            <Models />
+            
             {selectedSet ? (
                 <Minisets
                     setId={selectedSet.id}
