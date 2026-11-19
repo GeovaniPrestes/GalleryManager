@@ -66,6 +66,8 @@ export function registerSetHandlers(): void {
             }
         }
 
+        const thumbnailPath = await generateThumbnailFromFolder(folderPath);
+
         const gallerySet = await GallerySet.create({
             name,
             description: description || null,
@@ -218,6 +220,60 @@ export function registerSetHandlers(): void {
             await transaction.rollback();
             throw error;
         }
+    });
+
+    ipcMain.handle("sets:generate-thumbnail", async (_event, id) => {
+        const setId = Number(id);
+
+        if (!Number.isInteger(setId) || setId <= 0) {
+            throw new Error("ID do Set inválido.");
+        }
+
+        const gallerySet = await GallerySet.findByPk(setId);
+
+        if (!gallerySet) {
+            throw new Error("Set não encontrado.");
+        }
+
+        const thumbnailPath = await generateThumbnailFromFolder(
+            gallerySet.folderPath
+        );
+
+        await gallerySet.update({
+            thumbnailPath
+        });
+
+        return {
+            success: true,
+            thumbnailPath
+        };
+    });
+
+    ipcMain.handle("sets:generate-missing-thumbnails", async () => {
+        const sets = await GallerySet.findAll({
+            where: {
+                thumbnailPath: null
+            }
+        });
+
+        let generated = 0;
+
+        for (const gallerySet of sets) {
+            const thumbnailPath = await generateThumbnailFromFolder(
+                gallerySet.folderPath
+            );
+
+            if (thumbnailPath) {
+                await gallerySet.update({ thumbnailPath });
+                generated++;
+            }
+        }
+
+        return {
+            success: true,
+            total: sets.length,
+            generated
+        };
     });
 
     ipcMain.handle("sets:scan-minisets", async (_event, id) => {

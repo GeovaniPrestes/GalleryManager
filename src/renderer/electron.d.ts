@@ -78,6 +78,17 @@ interface ElectronAPI {
         setId: number;
         parentId: number | null;
     }): Promise<MinisetRecord[]>;
+
+    generateSetThumbnail(id: number): Promise<{
+        success: boolean;
+        thumbnailPath: string | null;
+    }>;
+
+    generateMissingSetThumbnails(): Promise<{
+        success: boolean;
+        total: number;
+        generated: number;
+    }>;
 }
 
 declare global {

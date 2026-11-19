@@ -47,4 +47,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
         setId: number;
         parentId: number | null;
     }) => ipcRenderer.invoke("minisets:list", data),
+
+    generateSetThumbnail: (id: number) =>
+        ipcRenderer.invoke("sets:generate-thumbnail", id),
+
+    generateMissingSetThumbnails: () =>
+        ipcRenderer.invoke("sets:generate-missing-thumbnails"),
 });

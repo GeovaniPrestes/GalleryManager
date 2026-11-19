@@ -20,23 +20,23 @@ function Sets({ onOpenSet }: SetsProps) {
     const [saving, setSaving] = useState(false);
     const [editingSet, setEditingSet] = useState<SetRecord | null>(null);
 
-    useEffect(() => {
-        async function loadSets() {
-            try {
-                const [setsResult, modelsResult] = await Promise.all([
-                    window.electronAPI.listSets(),
-                    window.electronAPI.listModels()
-                ]);
+    async function loadSets() {
+        try {
+            const [setsResult, modelsResult] = await Promise.all([
+                window.electronAPI.listSets(),
+                window.electronAPI.listModels()
+            ]);
 
-                setSets(setsResult);
-                setModels(modelsResult);
-            } catch (error) {
-                console.error("Erro ao carregar sets:", error);
-            } finally {
-                setLoading(false);
-            }
+            setSets(setsResult);
+            setModels(modelsResult);
+        } catch (error) {
+            console.error("Erro ao carregar sets:", error);
+        } finally {
+            setLoading(false);
         }
+    }
 
+    useEffect(() => {
         loadSets();
     }, []);
 
@@ -157,12 +157,33 @@ function Sets({ onOpenSet }: SetsProps) {
                     <p>Gerencie os sets da sua biblioteca.</p>
                 </div>
 
-                <button
-                    className="primary-button"
-                    onClick={() => setShowForm(true)}
-                >
-                    + Novo set
-                </button>
+                <div className="page-actions">
+                    <button
+                        className="secondary-button"
+                        onClick={async () => {
+                            try {
+                                const result = await window.electronAPI.generateMissingSetThumbnails();
+
+                                alert(
+                                    `Processo concluído!\nSets analisados: ${result.total}\nThumbnails geradas: ${result.generated}`
+                                );
+                                await loadSets();
+                            } catch (error) {
+                                console.error(error);
+                                alert("Erro ao gerar thumbnails dos Sets.");
+                            }
+                        }}
+                    >
+                        Gerar thumbnails pendentes
+                    </button>
+
+                    <button
+                        className="primary-button"
+                        onClick={() => setShowForm(true)}
+                    >
+                        + Novo set
+                    </button>
+                </div>
             </div>
 
             <div className="sets-toolbar">
@@ -183,7 +204,14 @@ function Sets({ onOpenSet }: SetsProps) {
                     {sets.map((gallerySet) => (
                         <div className="set-card" key={gallerySet.id}>
                             <div className="set-thumbnail">
-                                <span>SEM THUMBNAIL</span>
+                                {gallerySet.thumbnailPath ? (
+                                    <img
+                                        src={`media://thumbnail?path=${encodeURIComponent(gallerySet.thumbnailPath)}`}
+                                        alt={gallerySet.name}
+                                    />
+                                ) : (
+                                    <span>SEM THUMBNAIL</span>
+                                )}
                             </div>
 
                             <div className="set-info">
