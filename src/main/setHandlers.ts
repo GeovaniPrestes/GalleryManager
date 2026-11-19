@@ -22,9 +22,12 @@ export function registerSetHandlers(): void {
         return result.filePaths[0];
     });
 
-    ipcMain.handle("sets:select-thumbnail", async () => {
+    ipcMain.handle("sets:select-thumbnail", async (_event, folderPath) => {
+        const initialPath = String(folderPath ?? "").trim();
+
         const result = await dialog.showOpenDialog({
             title: "Selecionar thumbnail do set",
+            defaultPath: initialPath || undefined,
             properties: ["openFile"],
             filters: [{
                 name: "Imagens",
@@ -191,7 +194,7 @@ export function registerSetHandlers(): void {
                 {
                     name,
                     description: description || null,
-                    folderPath, 
+                    folderPath,
                     thumbnailPath: thumbnailPath || null
                 },
                 { transaction }

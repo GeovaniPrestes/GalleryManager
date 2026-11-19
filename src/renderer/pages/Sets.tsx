@@ -42,7 +42,7 @@ function Sets({ onOpenSet }: SetsProps) {
     }, []);
 
     const handleSelectThumbnail = async () => {
-        const path = await window.electronAPI.selectSetThumbnail();
+        const path = await window.electronAPI.selectSetThumbnail(folderPath);
 
         if (path) {
             setSelectedThumbnail(path);
@@ -314,6 +314,21 @@ function Sets({ onOpenSet }: SetsProps) {
                                 value={folderPath}
                                 readOnly
                             />
+
+                            <button
+                                className="secondary-button"
+                                onClick={async () => {
+                                    const selectedFolder =
+                                        await window.electronAPI.selectSetFolder();
+
+                                    if (selectedFolder) {
+                                        setFolderPath(selectedFolder);
+                                    }
+                                }}
+                            >
+                                Selecionar pasta
+                            </button>
+
                             <div className="form-group">
                                 <label>Thumbnail do Set</label>
 
@@ -336,19 +351,7 @@ function Sets({ onOpenSet }: SetsProps) {
                                     />
                                 </div>
                             )}
-                            <button
-                                className="secondary-button"
-                                onClick={async () => {
-                                    const selectedFolder =
-                                        await window.electronAPI.selectSetFolder();
 
-                                    if (selectedFolder) {
-                                        setFolderPath(selectedFolder);
-                                    }
-                                }}
-                            >
-                                Selecionar pasta
-                            </button>
                         </div>
 
 

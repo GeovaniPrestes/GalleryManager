@@ -60,5 +60,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
     selectModelThumbnail: () =>
         ipcRenderer.invoke("models:select-thumbnail"),
 
-    selectSetThumbnail: () => ipcRenderer.invoke("sets:select-thumbnail"),
+    selectSetThumbnail: (folderPath: string) =>
+        ipcRenderer.invoke("sets:select-thumbnail", folderPath),
 });
