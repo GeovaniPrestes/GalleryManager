@@ -19,6 +19,7 @@ function Models() {
     const [saving, setSaving] = useState(false);
     const [search, setSearch] = useState("");
     const [editingModel, setEditingModel] = useState<Model | null>(null);
+    const [selectedThumbnail, setSelectedThumbnail] = useState<string | null>(null);
 
     useEffect(() => {
         async function loadModels() {
@@ -48,6 +49,19 @@ function Models() {
         }
     }
 
+    async function handleSelectThumbnail() {
+        try {
+            const selectedImage = await window.electronAPI.selectModelThumbnail();
+
+            if (selectedImage) {
+                setSelectedThumbnail(selectedImage);
+            }
+        } catch (error) {
+            console.error("Erro ao selecionar thumbnail:", error);
+            alert("Não foi possível selecionar a imagem.");
+        }
+    }
+
     async function handleCreateModel() {
         if (!name.trim()) {
             alert("O nome do modelo é obrigatório.");
@@ -61,6 +75,7 @@ function Models() {
                 name: name.trim(),
                 description: description.trim(),
                 folderPath: folderPath.trim(),
+                selectedThumbnail: selectedThumbnail?.trim() || null,
             });
 
             const updatedModels = await window.electronAPI.listModels();
@@ -94,6 +109,7 @@ function Models() {
                 name: name.trim(),
                 description: description.trim(),
                 folderPath: folderPath.trim(),
+                selectedThumbnail: selectedThumbnail?.trim() || null,
             });
 
             const updatedModels = await window.electronAPI.listModels();
@@ -210,6 +226,32 @@ function Models() {
                                     Selecionar pasta
                                 </button>
                             </div>
+                            <label>Thumbnail do modelo</label>
+
+                            <div className="folder-selection">
+                                <input
+                                    type="text"
+                                    value={selectedThumbnail ?? ""}
+                                    placeholder="Thumbnail automática"
+                                    readOnly
+                                />
+
+                                <button
+                                    type="button"
+                                    className="secondary-button"
+                                    onClick={handleSelectThumbnail}
+                                >
+                                    Escolher imagem
+                                </button>
+                            </div>
+                            {selectedThumbnail && (
+                                <div className="model-thumbnail-preview">
+                                    <img
+                                        src={`preview://image?path=${encodeURIComponent(selectedThumbnail)}`}
+                                        alt="Prévia da thumbnail"
+                                    />
+                                </div>
+                            )}
                         </div>
 
                         <div className="modal-footer">
@@ -270,6 +312,12 @@ function Models() {
                                     <img
                                         src={`media://thumbnail?path=${encodeURIComponent(model.thumbnailPath)}`}
                                         alt={model.name}
+                                        onError={() => {
+                                            console.error("Erro ao carregar thumbnail:", {
+                                                name: model.name,
+                                                path: model.thumbnailPath
+                                            });
+                                        }}
                                     />
                                 ) : (
                                     <span>SEM THUMBNAIL</span>

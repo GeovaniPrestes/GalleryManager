@@ -1,5 +1,6 @@
 import { dialog, ipcMain } from "electron";
-import { generateThumbnailFromFolder } from "./services/thumbnailGenerator";
+import { generateThumbnail, generateThumbnailFromFolder } from "./services/thumbnailGenerator";
+import { allowPreviewPath } from "./services/previewAccess";
 import Model from "../database/models/Model";
 
 export function registerModelHandlers(): void {
@@ -16,18 +17,47 @@ export function registerModelHandlers(): void {
         return result.filePaths[0];
     });
 
+    ipcMain.handle("models:select-thumbnail", async () => {
+        const result = await dialog.showOpenDialog({
+            title: "Selecionar thumbnail do modelo",
+            properties: ["openFile"],
+            filters: [
+                {
+                    name: "Imagens",
+                    extensions: ["jpg", "jpeg", "png", "webp", "avif", "tiff", "gif"]
+                }
+            ]
+        });
+
+        if (result.canceled || result.filePaths.length === 0) {
+            return null;
+        }
+
+        const selectedPath = result.filePaths[0];
+
+        allowPreviewPath(selectedPath);
+
+        return selectedPath;
+    });
+
     ipcMain.handle("models:create", async (_event, data) => {
         const name = String(data?.name ?? "").trim();
         const description = String(data?.description ?? "").trim();
         const folderPath = String(data?.folderPath ?? "").trim();
+        const selectedThumbnail = String(data?.selectedThumbnail ?? "").trim();
+        console.log("Pasta recebida:", folderPath);
+
+        const thumbnailPath = selectedThumbnail
+            ? await generateThumbnail(selectedThumbnail)
+            : folderPath
+                ? await generateThumbnailFromFolder(folderPath)
+                : null;
+
+        console.log("Thumbnail gerada:", thumbnailPath);
 
         if (!name) {
             throw new Error("O nome do modelo é obrigatório.");
         }
-
-        const thumbnailPath = folderPath
-            ? await generateThumbnailFromFolder(folderPath)
-            : null;
 
         const model = await Model.create({
             name,
@@ -45,6 +75,7 @@ export function registerModelHandlers(): void {
         const name = String(data?.name ?? "").trim();
         const description = String(data?.description ?? "").trim();
         const folderPath = String(data?.folderPath ?? "").trim();
+        const selectedThumbnail = String(data?.selectedThumbnail ?? "").trim();
 
         if (!Number.isInteger(id) || id <= 0) {
             throw new Error("ID do modelo inválido.");
@@ -60,10 +91,17 @@ export function registerModelHandlers(): void {
             throw new Error("Modelo não encontrado.");
         }
 
+        const thumbnailPath = selectedThumbnail
+            ? await generateThumbnail(selectedThumbnail)
+            : folderPath !== (model.folderPath ?? "")
+                ? await generateThumbnailFromFolder(folderPath)
+                : model.thumbnailPath;
+
         await model.update({
             name,
             description: description || null,
             folderPath: folderPath || null,
+            thumbnailPath
         });
 
         return model.toJSON();

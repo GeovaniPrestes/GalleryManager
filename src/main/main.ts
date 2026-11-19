@@ -3,6 +3,7 @@ import { join, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createDatabase } from "../database/connection";
 import { runMigrations } from "../database/migrator";
+import { isPreviewPathAllowed } from "./services/previewAccess";
 import Model from "../database/models/Model";
 import { registerModelHandlers } from "./modelHandlers";
 import GallerySet from "../database/models/GallerySet";
@@ -13,6 +14,15 @@ import Miniset from "../database/models/Miniset";
 protocol.registerSchemesAsPrivileged([
     {
         scheme: "media",
+        privileges: {
+            standard: true,
+            secure: true,
+            supportFetchAPI: true,
+            stream: true
+        }
+    },
+    {
+        scheme: "preview",
         privileges: {
             standard: true,
             secure: true,
@@ -48,6 +58,7 @@ function createWindow(): void {
 
 app.whenReady().then(async () => {
     protocol.handle("media", async (request) => {
+        
         const url = new URL(request.url);
         const filePath = url.searchParams.get("path");
 
@@ -69,6 +80,29 @@ app.whenReady().then(async () => {
                 status: 403
             });
         }
+
+        return net.fetch(
+            pathToFileURL(resolvedPath).toString()
+        );
+    });
+
+    protocol.handle("preview", async (request) => {
+        const url = new URL(request.url);
+        const filePath = url.searchParams.get("path");
+
+        if (!filePath) {
+            return new Response("Caminho não informado.", {
+                status: 400
+            });
+        }
+
+        if (!isPreviewPathAllowed(filePath)) {
+            return new Response("Acesso negado.", {
+                status: 403
+            });
+        }
+
+        const resolvedPath = resolve(filePath);
 
         return net.fetch(
             pathToFileURL(resolvedPath).toString()

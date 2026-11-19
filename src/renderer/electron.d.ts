@@ -38,6 +38,7 @@ interface ElectronAPI {
         name: string;
         description: string;
         folderPath: string;
+        selectedThumbnail: string | null;
     }): Promise<ModelRecord>;
 
     listModels(): Promise<ModelRecord[]>;
@@ -47,6 +48,7 @@ interface ElectronAPI {
         name: string;
         description: string;
         folderPath: string;
+        selectedThumbnail: string | null;
     }): Promise<ModelRecord>;
 
     deleteModel(id: number): Promise<{ success: boolean }>;
@@ -94,6 +96,8 @@ interface ElectronAPI {
     }>;
 
     selectModelFolder(): Promise<string | null>;
+
+    selectModelThumbnail(): Promise<string | null>;
 }
 
 declare global {
