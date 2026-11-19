@@ -119,6 +119,22 @@ function Sets() {
         }
     }
 
+    async function handleScanMinisets(gallerySet: SetRecord) {
+        try {
+            const result = await window.electronAPI.scanMinisets(
+                gallerySet.id
+            );
+
+            alert(
+                `Indexação concluída!\n${result.total} Miniset(s) encontrado(s).`
+            );
+
+        } catch (error) {
+            console.error("Erro ao indexar Minisets:", error);
+            alert("Não foi possível indexar as subpastas deste Set.");
+        }
+    }
+
     function handleToggleModel(modelId: number) {
         setSelectedModels((current) => {
             if (current.includes(modelId)) {
@@ -197,6 +213,12 @@ function Sets() {
                                     onClick={() => handleDeleteSet(gallerySet)}
                                 >
                                     Excluir
+                                </button>
+                                <button
+                                    className="secondary-button"
+                                    onClick={() => handleScanMinisets(gallerySet)}
+                                >
+                                    Indexar subpastas
                                 </button>
                             </div>
                         </div>

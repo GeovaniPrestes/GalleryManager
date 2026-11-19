@@ -21,6 +21,17 @@ interface SetRecord {
     }[];
 }
 
+interface MinisetRecord {
+    id: number;
+    name: string;
+    folderPath: string;
+    parentId: number | null;
+    setId: number;
+    thumbnailPath: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
 interface ElectronAPI {
     createModel(data: {
         name: string;
@@ -57,6 +68,16 @@ interface ElectronAPI {
     listSets(): Promise<SetRecord[]>;
 
     selectSetFolder(): Promise<string | null>;
+
+    scanMinisets(setId: number): Promise<{
+        success: boolean;
+        total: number;
+    }>;
+
+    listMinisets(data: {
+        setId: number;
+        parentId: number | null;
+    }): Promise<MinisetRecord[]>;
 }
 
 declare global {

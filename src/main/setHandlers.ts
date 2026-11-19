@@ -2,6 +2,8 @@ import { dialog, ipcMain } from "electron";
 import GallerySet from "../database/models/GallerySet";
 import Model from "../database/models/Model";
 import SetModel from "../database/models/SetModel";
+import Miniset from "../database/models/Miniset";
+import { scanMinisetFolders } from "./services/minisetScanner";
 
 export function registerSetHandlers(): void {
 
@@ -215,7 +217,124 @@ export function registerSetHandlers(): void {
             await transaction.rollback();
             throw error;
         }
-    }); 
+    });
+
+    ipcMain.handle("sets:scan-minisets", async (_event, id) => {
+        const setId = Number(id);
+
+        if (!Number.isInteger(setId) || setId <= 0) {
+            throw new Error("ID do Set inválido.");
+        }
+
+        const gallerySet = await GallerySet.findByPk(setId);
+
+        if (!gallerySet) {
+            throw new Error("Set não encontrado.");
+        }
+
+        const scannedFolders = await scanMinisetFolders(
+            gallerySet.folderPath
+        );
+
+        const transaction = await Miniset.sequelize!.transaction();
+
+        try {
+            const minisetIds = new Map<string, number>();
+
+            for (const folder of scannedFolders) {
+                const parentId = folder.parentPath
+                    ? minisetIds.get(folder.parentPath) ?? null
+                    : null;
+
+                const [miniset] = await Miniset.findOrCreate({
+                    where: {
+                        folderPath: folder.folderPath
+                    },
+                    defaults: {
+                        name: folder.name,
+                        folderPath: folder.folderPath,
+                        parentId,
+                        setId,
+                        thumbnailPath: null
+                    },
+                    transaction
+                });
+
+                await miniset.update(
+                    {
+                        name: folder.name,
+                        parentId,
+                        setId
+                    },
+                    { transaction }
+                );
+
+                minisetIds.set(folder.folderPath, miniset.id);
+            }
+
+            await transaction.commit();
+
+            return {
+                success: true,
+                total: scannedFolders.length
+            };
+
+        } catch (error) {
+            await transaction.rollback();
+            throw error;
+        }
+    });
+
+    ipcMain.handle(
+        "minisets:list",
+        async (_event, data) => {
+            const setId = Number(data?.setId);
+
+            const parentId = data?.parentId === null
+                ? null
+                : Number(data?.parentId);
+
+            if (!Number.isInteger(setId) || setId <= 0) {
+                throw new Error("ID do Set inválido.");
+            }
+
+            if (
+                parentId !== null &&
+                (!Number.isInteger(parentId) || parentId <= 0)
+            ) {
+                throw new Error("ID do Miniset pai inválido.");
+            }
+
+            const gallerySet = await GallerySet.findByPk(setId);
+
+            if (!gallerySet) {
+                throw new Error("Set não encontrado.");
+            }
+
+            if (parentId !== null) {
+                const parent = await Miniset.findOne({
+                    where: {
+                        id: parentId,
+                        setId
+                    }
+                });
+
+                if (!parent) {
+                    throw new Error("Miniset pai não encontrado.");
+                }
+            }
+
+            const minisets = await Miniset.findAll({
+                where: {
+                    setId,
+                    parentId
+                },
+                order: [["name", "ASC"]]
+            });
+
+            return minisets.map((miniset) => miniset.toJSON());
+        }
+    );
 
     ipcMain.handle("sets:list", async () => {
         const sets = await GallerySet.findAll({

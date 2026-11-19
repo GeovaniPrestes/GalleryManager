@@ -6,6 +6,7 @@ import { registerModelHandlers } from "./modelHandlers";
 import GallerySet from "../database/models/GallerySet";
 import { registerSetHandlers } from "./setHandlers";
 import SetModel from "../database/models/SetModel";
+import Miniset from "../database/models/Miniset";
 
 function createWindow(): void {
     const mainWindow = new BrowserWindow({
@@ -50,9 +51,32 @@ app.whenReady().then(async () => {
             as: "models"
         });
 
+        GallerySet.hasMany(Miniset, {
+            foreignKey: "setId",
+            as: "minisets",
+            onDelete: "CASCADE"
+        });
+
+        Miniset.belongsTo(GallerySet, {
+            foreignKey: "setId",
+            as: "set"
+        });
+
+        Miniset.hasMany(Miniset, {
+            foreignKey: "parentId",
+            as: "children",
+            onDelete: "CASCADE"
+        });
+
+        Miniset.belongsTo(Miniset, {
+            foreignKey: "parentId",
+            as: "parent"
+        });
+
         await Model.sync();
         await GallerySet.sync();
         await SetModel.sync();
+        await Miniset.sync();
 
         registerModelHandlers();
         registerSetHandlers();

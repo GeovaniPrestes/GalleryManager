@@ -39,4 +39,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
     selectSetFolder: () =>
         ipcRenderer.invoke("sets:select-folder"),
+
+    scanMinisets: (setId: number) =>
+        ipcRenderer.invoke("sets:scan-minisets", setId),
+
+    listMinisets: (data: {
+        setId: number;
+        parentId: number | null;
+    }) => ipcRenderer.invoke("minisets:list", data),
 });
