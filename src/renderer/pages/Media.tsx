@@ -7,6 +7,7 @@ function Media() {
     const [error, setError] = useState("");
     const [hasMore, setHasMore] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
+    const [selectedMedia, setSelectedMedia] = useState<any | null>(null);
 
     async function loadMedia() {
         try {
@@ -74,7 +75,11 @@ function Media() {
 
                     <div className="media-grid">
                         {media.map((item) => (
-                            <div className="media-card" key={item.id}>
+                            <div
+                                className="media-card"
+                                key={item.id}
+                                onClick={() => setSelectedMedia(item)}
+                            >
                                 {item.thumbnailPath ? (
                                     <img
                                         src={`media://thumbnail?path=${encodeURIComponent(item.thumbnailPath)}`}
@@ -102,6 +107,27 @@ function Media() {
                         </button>
                     )}
                 </>
+            )}
+            {selectedMedia && (
+                <div
+                    className="media-viewer"
+                    onClick={() => setSelectedMedia(null)}
+                >
+                    <button
+                        className="media-viewer-close"
+                        onClick={() => setSelectedMedia(null)}
+                    >
+                        ×
+                    </button>
+
+                    <img
+                        src={`preview://image?path=${encodeURIComponent(
+                            selectedMedia.locations[0].filePath
+                        )}`}
+                        alt={selectedMedia.locations[0].fileName}
+                        onClick={(event) => event.stopPropagation()}
+                    />
+                </div>
             )}
         </div>
     );

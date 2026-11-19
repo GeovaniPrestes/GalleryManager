@@ -4,6 +4,7 @@ import {
     Model as SequelizeModel,
     Optional
 } from "sequelize";
+import type MediaLocation from "./MediaLocation";
 
 import { createDatabase } from "../connection";
 
@@ -27,6 +28,7 @@ class Media extends SequelizeModel<
     declare fileHash: string | null;
     declare mediaType: "image" | "video";
     declare thumbnailPath: string | null;
+    declare locations?: MediaLocation[];
 }
 
 Media.init(

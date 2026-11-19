@@ -2,6 +2,7 @@ import { ipcMain } from "electron";
 import Media from "../database/models/Media";
 import MediaLocation from "../database/models/MediaLocation";
 import GallerySet from "../database/models/GallerySet";
+import { allowPreviewPath } from "./services/previewAccess";
 import Miniset from "../database/models/Miniset";
 
 export function registerMediaHandlers(): void {
@@ -41,12 +42,11 @@ export function registerMediaHandlers(): void {
             order: [["id", "DESC"]]
         });
 
-        console.log(
-            "Miniaturas cadastradas:",
-            result.rows.filter(media => media.thumbnailPath).length,
-            "de",
-            result.count
-        );
+        for (const media of result.rows) {
+            for (const location of media.locations ?? []) {
+                allowPreviewPath(location.filePath);
+            }
+        }
 
         return {
             total: result.count,
