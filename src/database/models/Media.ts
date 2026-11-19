@@ -38,7 +38,8 @@ Media.init(
         },
         fileHash: {
             type: DataTypes.STRING,
-            allowNull: true
+            allowNull: true,
+            unique: true
         },
         mediaType: {
             type: DataTypes.ENUM("image", "video"),

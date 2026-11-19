@@ -15,6 +15,13 @@ export interface MediaIndexResult {
     errors: number;
 }
 
+function normalizePath(filePath: string): string {
+    return filePath
+        .replace(/\\/g, "/")
+        .replace(/\/+/g, "/")
+        .toLowerCase();
+}
+
 export async function indexSetMedia(
     setId: number
 ): Promise<MediaIndexResult> {
@@ -39,30 +46,13 @@ export async function indexSetMedia(
     result.totalFiles = scannedFiles.length;
 
     const scannedPaths = new Set(
-        scannedFiles.map(file => file.filePath.toLowerCase())
+        scannedFiles.map(file => normalizePath(file.filePath))
     );
 
     const existingLocations = await MediaLocation.findAll({
-        include: [
-            {
-                model: Media,
-                as: "media",
-                required: true,
-                include: [
-                    {
-                        model: GallerySet,
-                        as: "sets",
-                        where: {
-                            id: setId
-                        },
-                        through: {
-                            attributes: []
-                        },
-                        required: true
-                    }
-                ]
-            }
-        ]
+        where: {
+            setId
+        }
     });
 
     const minisets = await Miniset.findAll({
@@ -81,13 +71,13 @@ export async function indexSetMedia(
     }
 
     function findMinisetId(filePath: string): number | null {
-        const normalizedPath = filePath.toLowerCase().replace(/\\/g, "/");
+        const normalizedPath = normalizePath(filePath);
 
         let matchedId: number | null = null;
         let longestPathLength = 0;
 
         for (const [folderPath, minisetId] of minisetPaths) {
-            const normalizedFolder = folderPath.replace(/\\/g, "/");
+            const normalizedFolder = normalizePath(folderPath);
 
             if (
                 normalizedPath.startsWith(normalizedFolder + "/") &&
@@ -122,21 +112,40 @@ export async function indexSetMedia(
                 result.newMedia++;
             }
 
-            const existingLocation = await MediaLocation.findOne({
-                where: {
-                    filePath: file.filePath
-                }
-            });
+            const normalizedFilePath = normalizePath(file.filePath);
+
+            const existingLocation = existingLocations.find(
+                location => normalizePath(location.filePath) === normalizedFilePath
+            );
 
             if (existingLocation) {
+                const previousMediaId = existingLocation.mediaId;
+
                 await existingLocation.update({
                     mediaId: media.id,
                     setId,
                     minisetId: findMinisetId(file.filePath),
+                    filePath: file.filePath,
                     fileName: file.fileName,
                     extension: file.extension,
                     fileSize: file.fileSize
                 });
+
+                if (previousMediaId !== media.id) {
+                    const remainingLocations = await MediaLocation.count({
+                        where: {
+                            mediaId: previousMediaId
+                        }
+                    });
+
+                    if (remainingLocations === 0) {
+                        await Media.destroy({
+                            where: {
+                                id: previousMediaId
+                            }
+                        });
+                    }
+                }
             } else {
                 await MediaLocation.create({
                     mediaId: media.id,
@@ -158,6 +167,30 @@ export async function indexSetMedia(
             );
 
             result.errors++;
+        }
+    }
+
+    for (const location of existingLocations) {
+        if (result.errors === 0) {
+            for (const location of existingLocations) {
+                if (!scannedPaths.has(normalizePath(location.filePath))) {
+                    await location.destroy();
+
+                    const remainingLocations = await MediaLocation.count({
+                        where: {
+                            mediaId: location.mediaId
+                        }
+                    });
+
+                    if (remainingLocations === 0) {
+                        await Media.destroy({
+                            where: {
+                                id: location.mediaId
+                            }
+                        });
+                    }
+                }
+            }
         }
     }
 
