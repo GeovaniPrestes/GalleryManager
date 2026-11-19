@@ -15,12 +15,13 @@ interface ModelAttributes {
     thumbnailPath: string | null;
     createdAt?: Date;
     updatedAt?: Date;
+    folderPath: string | null;
 }
 
 interface ModelCreationAttributes
     extends Optional<
         ModelAttributes,
-        "id" | "description" | "thumbnailPath"
+        "id" | "description" | "thumbnailPath" | "folderPath"
     > { }
 
 class Model
@@ -36,6 +37,7 @@ class Model
     declare thumbnailPath: string | null;
     declare readonly createdAt: Date;
     declare readonly updatedAt: Date;
+    declare folderPath: string | null;
 }
 
 Model.init(
@@ -54,6 +56,10 @@ Model.init(
             allowNull: true
         },
         thumbnailPath: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        folderPath: {
             type: DataTypes.STRING,
             allowNull: true
         }

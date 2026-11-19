@@ -2,6 +2,7 @@ import { app, BrowserWindow, protocol, net } from "electron";
 import { join, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createDatabase } from "../database/connection";
+import { runMigrations } from "../database/migrator";
 import Model from "../database/models/Model";
 import { registerModelHandlers } from "./modelHandlers";
 import GallerySet from "../database/models/GallerySet";
@@ -73,7 +74,7 @@ app.whenReady().then(async () => {
             pathToFileURL(resolvedPath).toString()
         );
     });
-    
+
     try {
         const database = createDatabase();
         await database.authenticate();
@@ -118,6 +119,14 @@ app.whenReady().then(async () => {
         await GallerySet.sync();
         await SetModel.sync();
         await Miniset.sync();
+
+        console.log("Verificando migrations pendentes...");
+
+        const executedMigrations = await runMigrations();
+
+        console.log(
+            `${executedMigrations.length} migration(s) executada(s).`
+        );
 
         registerModelHandlers();
         registerSetHandlers();
