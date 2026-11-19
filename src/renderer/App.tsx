@@ -11,7 +11,7 @@ function App() {
 
     return (
         <MainLayout>
-            <Models />
+            
             {selectedSet ? (
                 <Minisets
                     setId={selectedSet.id}

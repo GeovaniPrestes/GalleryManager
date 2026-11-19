@@ -4,7 +4,8 @@ import Model from "../database/models/Model";
 import SetModel from "../database/models/SetModel";
 import Miniset from "../database/models/Miniset";
 import { scanMinisetFolders } from "./services/minisetScanner";
-import { generateThumbnailFromFolder } from "./services/thumbnailGenerator";
+import { generateThumbnail, generateThumbnailFromFolder } from "./services/thumbnailGenerator";
+import { allowPreviewPath } from "./services/previewAccess";
 
 export function registerSetHandlers(): void {
 
@@ -21,10 +22,32 @@ export function registerSetHandlers(): void {
         return result.filePaths[0];
     });
 
+    ipcMain.handle("sets:select-thumbnail", async () => {
+        const result = await dialog.showOpenDialog({
+            title: "Selecionar thumbnail do set",
+            properties: ["openFile"],
+            filters: [{
+                name: "Imagens",
+                extensions: ["jpg", "jpeg", "png", "webp", "avif", "tiff", "gif"]
+            }]
+        });
+
+        if (result.canceled || result.filePaths.length === 0) {
+            return null;
+        }
+
+        const selectedPath = result.filePaths[0];
+
+        allowPreviewPath(selectedPath);
+
+        return selectedPath;
+    });
+
     ipcMain.handle("sets:create", async (_event, data) => {
         const name = String(data?.name ?? "").trim();
         const description = String(data?.description ?? "").trim();
         const folderPath = String(data?.folderPath ?? "").trim();
+        const selectedThumbnail = String(data?.selectedThumbnail ?? "").trim();
         const modelIds: number[] = Array.isArray(data?.modelIds)
             ? data.modelIds.map((id: unknown) => Number(id))
             : [];
@@ -66,13 +89,15 @@ export function registerSetHandlers(): void {
             }
         }
 
-        const thumbnailPath = await generateThumbnailFromFolder(folderPath);
+        const thumbnailPath = selectedThumbnail
+            ? await generateThumbnail(selectedThumbnail)
+            : await generateThumbnailFromFolder(folderPath);
 
         const gallerySet = await GallerySet.create({
             name,
             description: description || null,
             folderPath,
-            thumbnailPath: null
+            thumbnailPath: thumbnailPath || null
         });
 
         if (uniqueModelIds.length > 0) {
@@ -102,6 +127,7 @@ export function registerSetHandlers(): void {
         const name = String(data?.name ?? "").trim();
         const description = String(data?.description ?? "").trim();
         const folderPath = String(data?.folderPath ?? "").trim();
+        const selectedThumbnail = String(data?.selectedThumbnail ?? "").trim();
 
         const modelIds: number[] = Array.isArray(data?.modelIds)
             ? data.modelIds.map((id: unknown) => Number(id))
@@ -141,6 +167,12 @@ export function registerSetHandlers(): void {
             throw new Error("Um ou mais modelos selecionados são inválidos.");
         }
 
+        const thumbnailPath = selectedThumbnail
+            ? await generateThumbnail(selectedThumbnail)
+            : folderPath !== gallerySet.folderPath
+                ? await generateThumbnailFromFolder(folderPath)
+                : gallerySet.thumbnailPath;
+
         const transaction = await GallerySet.sequelize!.transaction();
 
         try {
@@ -159,7 +191,8 @@ export function registerSetHandlers(): void {
                 {
                     name,
                     description: description || null,
-                    folderPath
+                    folderPath, 
+                    thumbnailPath: thumbnailPath || null
                 },
                 { transaction }
             );

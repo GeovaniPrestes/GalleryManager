@@ -58,6 +58,7 @@ interface ElectronAPI {
         description: string;
         folderPath: string;
         modelIds: number[];
+        selectedThumbnail: string | null;
     }): Promise<SetRecord>;
 
     updateSet(data: {
@@ -66,6 +67,7 @@ interface ElectronAPI {
         description: string;
         folderPath: string;
         modelIds: number[];
+        selectedThumbnail: string | null;
     }): Promise<SetRecord>;
 
     deleteSet(id: number): Promise<{ success: boolean }>;
@@ -98,6 +100,8 @@ interface ElectronAPI {
     selectModelFolder(): Promise<string | null>;
 
     selectModelThumbnail(): Promise<string | null>;
+
+    selectSetThumbnail(): Promise<string | null>;
 }
 
 declare global {

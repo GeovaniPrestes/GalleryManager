@@ -19,6 +19,7 @@ function Sets({ onOpenSet }: SetsProps) {
 
     const [saving, setSaving] = useState(false);
     const [editingSet, setEditingSet] = useState<SetRecord | null>(null);
+    const [selectedThumbnail, setSelectedThumbnail] = useState<string | null>(null);
 
     async function loadSets() {
         try {
@@ -40,6 +41,14 @@ function Sets({ onOpenSet }: SetsProps) {
         loadSets();
     }, []);
 
+    const handleSelectThumbnail = async () => {
+        const path = await window.electronAPI.selectSetThumbnail();
+
+        if (path) {
+            setSelectedThumbnail(path);
+        }
+    };
+
     async function handleCreateSet() {
         if (!name.trim()) {
             alert("O nome do set é obrigatório.");
@@ -60,14 +69,16 @@ function Sets({ onOpenSet }: SetsProps) {
                     name: name.trim(),
                     description: description.trim(),
                     folderPath,
-                    modelIds: selectedModels
+                    modelIds: selectedModels,
+                    selectedThumbnail
                 });
             } else {
                 await window.electronAPI.createSet({
                     name: name.trim(),
                     description: description.trim(),
                     folderPath,
-                    modelIds: selectedModels
+                    modelIds: selectedModels,
+                    selectedThumbnail
                 });
             }
 
@@ -78,6 +89,7 @@ function Sets({ onOpenSet }: SetsProps) {
             setDescription("");
             setFolderPath("");
             setSelectedModels([]);
+            setSelectedThumbnail(null);
             setShowForm(false);
             setEditingSet(null);
 
@@ -101,6 +113,7 @@ function Sets({ onOpenSet }: SetsProps) {
             gallerySet.models.map((model) => model.id)
         );
 
+        setSelectedThumbnail(null);
         setShowForm(true);
     }
 
@@ -301,7 +314,28 @@ function Sets({ onOpenSet }: SetsProps) {
                                 value={folderPath}
                                 readOnly
                             />
+                            <div className="form-group">
+                                <label>Thumbnail do Set</label>
 
+                                <button
+                                    type="button"
+                                    onClick={handleSelectThumbnail}
+                                >
+                                    Selecionar imagem
+                                </button>
+
+                                <small>
+                                    {selectedThumbnail || "Thumbnail automática"}
+                                </small>
+                            </div>
+                            {selectedThumbnail && (
+                                <div className="model-thumbnail-preview">
+                                    <img
+                                        src={`preview://image?path=${encodeURIComponent(selectedThumbnail)}`}
+                                        alt="Prévia da thumbnail do set"
+                                    />
+                                </div>
+                            )}
                             <button
                                 className="secondary-button"
                                 onClick={async () => {
