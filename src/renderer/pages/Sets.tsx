@@ -20,6 +20,7 @@ function Sets({ onOpenSet }: SetsProps) {
     const [saving, setSaving] = useState(false);
     const [editingSet, setEditingSet] = useState<SetRecord | null>(null);
     const [selectedThumbnail, setSelectedThumbnail] = useState<string | null>(null);
+    const [indexingSetId, setIndexingSetId] = useState<number | null>(null);
 
     async function loadSets() {
         try {
@@ -152,6 +153,31 @@ function Sets({ onOpenSet }: SetsProps) {
         }
     }
 
+    async function handleIndexMedia(gallerySet: SetRecord) {
+        try {
+            setIndexingSetId(gallerySet.id);
+
+            const result = await window.electronAPI.indexSetMedia(
+                gallerySet.id
+            );
+
+            alert(
+                `Indexação de mídias concluída!\n\n` +
+                `Arquivos encontrados: ${result.totalFiles}\n` +
+                `Novas mídias: ${result.newMedia}\n` +
+                `Novas localizações: ${result.newLocations}\n` +
+                `Mídias existentes: ${result.existingMedia}\n` +
+                `Erros: ${result.errors}`
+            );
+
+        } catch (error) {
+            console.error("Erro ao indexar mídias:", error);
+            alert("Não foi possível indexar as mídias deste Set.");
+        } finally {
+            setIndexingSetId(null);
+        }
+    }
+
     function handleToggleModel(modelId: number) {
         setSelectedModels((current) => {
             if (current.includes(modelId)) {
@@ -270,6 +296,15 @@ function Sets({ onOpenSet }: SetsProps) {
                                     onClick={() => handleScanMinisets(gallerySet)}
                                 >
                                     Indexar subpastas
+                                </button>
+                                <button
+                                    className="primary-button"
+                                    onClick={() => handleIndexMedia(gallerySet)}
+                                    disabled={indexingSetId !== null}
+                                >
+                                    {indexingSetId === gallerySet.id
+                                        ? "Indexando mídias..."
+                                        : "Indexar mídias"}
                                 </button>
                             </div>
                         </div>

@@ -6,8 +6,24 @@ import Miniset from "../database/models/Miniset";
 import { scanMinisetFolders } from "./services/minisetScanner";
 import { generateThumbnail, generateThumbnailFromFolder } from "./services/thumbnailGenerator";
 import { allowPreviewPath } from "./services/previewAccess";
+import { indexSetMedia } from "./services/Media/mediaIndexer";
 
 export function registerSetHandlers(): void {
+
+    ipcMain.handle("sets:index-media", async (_event, id) => {
+        const setId = Number(id);
+
+        if (!Number.isInteger(setId) || setId <= 0) {
+            throw new Error("ID do Set inválido.");
+        }
+
+        const result = await indexSetMedia(setId);
+
+        return {
+            success: true,
+            ...result
+        };
+    });
 
     ipcMain.handle("sets:select-folder", async () => {
         const result = await dialog.showOpenDialog({

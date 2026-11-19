@@ -62,4 +62,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
     selectSetThumbnail: (folderPath: string) =>
         ipcRenderer.invoke("sets:select-thumbnail", folderPath),
+
+    indexSetMedia: (setId: number) =>
+        ipcRenderer.invoke("sets:index-media", setId),
 });

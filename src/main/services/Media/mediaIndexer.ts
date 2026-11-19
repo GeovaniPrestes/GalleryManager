@@ -91,6 +91,15 @@ export async function indexSetMedia(
         return matchedId;
     }
 
+    const allLocations = await MediaLocation.findAll();
+
+    const locationsByPath = new Map(
+        allLocations.map(location => [
+            normalizePath(location.filePath),
+            location
+        ])
+    );
+
     for (const file of scannedFiles) {
         try {
             const fileHash = await calculateFileHash(file.filePath);
@@ -114,9 +123,7 @@ export async function indexSetMedia(
 
             const normalizedFilePath = normalizePath(file.filePath);
 
-            const existingLocation = existingLocations.find(
-                location => normalizePath(location.filePath) === normalizedFilePath
-            );
+            const existingLocation = locationsByPath.get(normalizedFilePath) ?? null;
 
             if (existingLocation) {
                 const previousMediaId = existingLocation.mediaId;
@@ -130,6 +137,8 @@ export async function indexSetMedia(
                     extension: file.extension,
                     fileSize: file.fileSize
                 });
+
+                locationsByPath.set(normalizedFilePath, existingLocation);
 
                 if (previousMediaId !== media.id) {
                     const remainingLocations = await MediaLocation.count({
@@ -147,7 +156,7 @@ export async function indexSetMedia(
                     }
                 }
             } else {
-                await MediaLocation.create({
+                const newLocation = await MediaLocation.create({
                     mediaId: media.id,
                     setId,
                     minisetId: findMinisetId(file.filePath),
@@ -156,6 +165,8 @@ export async function indexSetMedia(
                     extension: file.extension,
                     fileSize: file.fileSize
                 });
+
+                locationsByPath.set(normalizedFilePath, newLocation);
 
                 result.newLocations++;
             }
@@ -170,25 +181,23 @@ export async function indexSetMedia(
         }
     }
 
-    for (const location of existingLocations) {
-        if (result.errors === 0) {
-            for (const location of existingLocations) {
-                if (!scannedPaths.has(normalizePath(location.filePath))) {
-                    await location.destroy();
+    if (result.errors === 0) {
+        for (const location of existingLocations) {
+            if (!scannedPaths.has(normalizePath(location.filePath))) {
+                await location.destroy();
 
-                    const remainingLocations = await MediaLocation.count({
+                const remainingLocations = await MediaLocation.count({
+                    where: {
+                        mediaId: location.mediaId
+                    }
+                });
+
+                if (remainingLocations === 0) {
+                    await Media.destroy({
                         where: {
-                            mediaId: location.mediaId
+                            id: location.mediaId
                         }
                     });
-
-                    if (remainingLocations === 0) {
-                        await Media.destroy({
-                            where: {
-                                id: location.mediaId
-                            }
-                        });
-                    }
                 }
             }
         }

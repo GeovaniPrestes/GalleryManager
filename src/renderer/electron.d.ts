@@ -102,6 +102,15 @@ interface ElectronAPI {
     selectModelThumbnail(): Promise<string | null>;
 
     selectSetThumbnail(folderPath: string): Promise<string | null>;
+
+    indexSetMedia(setId: number): Promise<{
+        success: boolean;
+        totalFiles: number;
+        newMedia: number;
+        newLocations: number;
+        existingMedia: number;
+        errors: number;
+    }>;
 }
 
 declare global {
