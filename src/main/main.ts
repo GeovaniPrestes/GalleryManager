@@ -10,6 +10,10 @@ import GallerySet from "../database/models/GallerySet";
 import { registerSetHandlers } from "./setHandlers";
 import SetModel from "../database/models/SetModel";
 import Miniset from "../database/models/Miniset";
+import Media from "../database/models/Media";
+import SetMedia from "../database/models/SetMedia";
+import MinisetMedia from "../database/models/MinisetMedia";
+import MediaLocation from "../database/models/MediaLocation";
 
 protocol.registerSchemesAsPrivileged([
     {
@@ -58,7 +62,7 @@ function createWindow(): void {
 
 app.whenReady().then(async () => {
     protocol.handle("media", async (request) => {
-        
+
         const url = new URL(request.url);
         const filePath = url.searchParams.get("path");
 
@@ -149,10 +153,53 @@ app.whenReady().then(async () => {
             as: "parent"
         });
 
+        GallerySet.belongsToMany(Media, {
+            through: SetMedia,
+            foreignKey: "setId",
+            otherKey: "mediaId",
+            as: "media"
+        });
+
+        Media.belongsToMany(GallerySet, {
+            through: SetMedia,
+            foreignKey: "mediaId",
+            otherKey: "setId",
+            as: "sets"
+        });
+
+        Miniset.belongsToMany(Media, {
+            through: MinisetMedia,
+            foreignKey: "minisetId",
+            otherKey: "mediaId",
+            as: "media"
+        });
+
+        Media.belongsToMany(Miniset, {
+            through: MinisetMedia,
+            foreignKey: "mediaId",
+            otherKey: "minisetId",
+            as: "minisets"
+        });
+
+        Media.hasMany(MediaLocation, {
+            foreignKey: "mediaId",
+            as: "locations",
+            onDelete: "CASCADE"
+        });
+
+        MediaLocation.belongsTo(Media, {
+            foreignKey: "mediaId",
+            as: "media"
+        });
+
         await Model.sync();
         await GallerySet.sync();
         await SetModel.sync();
         await Miniset.sync();
+        await Media.sync();
+        await SetMedia.sync();
+        await MinisetMedia.sync();
+        await MediaLocation.sync();
 
         console.log("Verificando migrations pendentes...");
 
