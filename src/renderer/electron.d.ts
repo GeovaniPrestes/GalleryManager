@@ -52,6 +52,8 @@ interface ElectronAPI {
         modelIds: number[];
     }): Promise<SetRecord>;
 
+    deleteSet(id: number): Promise<{ success: boolean }>;
+
     listSets(): Promise<SetRecord[]>;
 
     selectSetFolder(): Promise<string | null>;

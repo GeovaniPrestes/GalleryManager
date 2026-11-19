@@ -100,6 +100,25 @@ function Sets() {
         setShowForm(true);
     }
 
+    async function handleDeleteSet(gallerySet: SetRecord) {
+        const confirmed = window.confirm(
+            `Tem certeza que deseja excluir o Set "${gallerySet.name}"?\n\nA pasta e os arquivos originais não serão apagados.`
+        );
+
+        if (!confirmed) return;
+
+        try {
+            await window.electronAPI.deleteSet(gallerySet.id);
+
+            const updatedSets = await window.electronAPI.listSets();
+            setSets(updatedSets);
+
+        } catch (error) {
+            console.error("Erro ao excluir Set:", error);
+            alert("Não foi possível excluir o Set.");
+        }
+    }
+
     function handleToggleModel(modelId: number) {
         setSelectedModels((current) => {
             if (current.includes(modelId)) {
@@ -172,6 +191,12 @@ function Sets() {
                                     onClick={() => handleEditSet(gallerySet)}
                                 >
                                     Editar
+                                </button>
+                                <button
+                                    className="delete-button"
+                                    onClick={() => handleDeleteSet(gallerySet)}
+                                >
+                                    Excluir
                                 </button>
                             </div>
                         </div>

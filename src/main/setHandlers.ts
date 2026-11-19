@@ -184,6 +184,39 @@ export function registerSetHandlers(): void {
         }
     });
 
+    ipcMain.handle("sets:delete", async (_event, id) => {
+        const setId = Number(id);
+
+        if (!Number.isInteger(setId) || setId <= 0) {
+            throw new Error("ID do Set inválido.");
+        }
+
+        const gallerySet = await GallerySet.findByPk(setId);
+
+        if (!gallerySet) {
+            throw new Error("Set não encontrado.");
+        }
+
+        const transaction = await GallerySet.sequelize!.transaction();
+
+        try {
+            await SetModel.destroy({
+                where: { setId },
+                transaction
+            });
+
+            await gallerySet.destroy({ transaction });
+
+            await transaction.commit();
+
+            return { success: true };
+
+        } catch (error) {
+            await transaction.rollback();
+            throw error;
+        }
+    }); 
+
     ipcMain.handle("sets:list", async () => {
         const sets = await GallerySet.findAll({
             include: [
