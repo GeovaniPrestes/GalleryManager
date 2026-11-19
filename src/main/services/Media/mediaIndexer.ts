@@ -2,7 +2,7 @@ import Media from "../../../database/models/Media";
 import MediaLocation from "../../../database/models/MediaLocation";
 import GallerySet from "../../../database/models/GallerySet";
 import Miniset from "../../../database/models/Miniset";
-
+import { generateThumbnail } from "../thumbnailGenerator";
 
 import { scanMediaFolder } from "./mediaScanner";
 import { calculateFileHash } from "./mediaHash";
@@ -112,10 +112,38 @@ export async function indexSetMedia(
 
             if (media) {
                 result.existingMedia++;
+
+                console.log(
+                    "Mídia encontrada:",
+                    media.id,
+                    "Tipo:",
+                    file.mediaType,
+                    "Thumbnail:",
+                    media.thumbnailPath
+                );
+
+                if (
+                    file.mediaType === "image" &&
+                    !media.thumbnailPath
+                ) {
+                    console.log("Gerando thumbnail para:", file.filePath);
+                    const thumbnailPath = await generateThumbnail(
+                        file.filePath
+                    );
+
+                    await media.update({
+                        thumbnailPath
+                    });
+                }
             } else {
+                const thumbnailPath = file.mediaType === "image"
+                    ? await generateThumbnail(file.filePath)
+                    : null;
+
                 media = await Media.create({
                     fileHash,
-                    mediaType: file.mediaType
+                    mediaType: file.mediaType,
+                    thumbnailPath
                 });
 
                 result.newMedia++;

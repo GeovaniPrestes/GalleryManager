@@ -111,6 +111,37 @@ interface ElectronAPI {
         existingMedia: number;
         errors: number;
     }>;
+
+    listMedia(data: {
+        limit: number;
+        offset: number;
+    }): Promise<{
+        total: number;
+        media: {
+            id: number;
+            fileHash: string | null;
+            mediaType: "image" | "video";
+            thumbnailPath: string | null;
+            locations: {
+                id: number;
+                mediaId: number;
+                filePath: string;
+                fileName: string;
+                extension: string;
+                fileSize: number;
+                setId: number | null;
+                minisetId: number | null;
+                gallerySet: {
+                    id: number;
+                    name: string;
+                } | null;
+                miniset: {
+                    id: number;
+                    name: string;
+                } | null;
+            }[];
+        }[];
+    }>;
 }
 
 declare global {

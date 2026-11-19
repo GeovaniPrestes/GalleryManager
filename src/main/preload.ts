@@ -65,4 +65,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
     indexSetMedia: (setId: number) =>
         ipcRenderer.invoke("sets:index-media", setId),
+
+    listMedia: (data: {
+        limit: number;
+        offset: number;
+    }) => ipcRenderer.invoke("media:list", data),
 });

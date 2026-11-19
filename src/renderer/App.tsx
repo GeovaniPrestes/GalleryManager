@@ -6,6 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import Models from "./pages/Models";
 import Sets from "./pages/Sets";
 import Minisets from "./pages/Miniset";
+import Media from "./pages/Media";
 
 import type { SetRecord } from "./electron";
 
@@ -37,6 +38,8 @@ function App() {
             case "sets":
                 return <Sets onOpenSet={setSelectedSet} />;
 
+            case "media":
+                return <Media />;
             default:
                 return <Dashboard />;
         }

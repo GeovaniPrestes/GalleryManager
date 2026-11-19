@@ -12,6 +12,7 @@ import SetModel from "../database/models/SetModel";
 import Miniset from "../database/models/Miniset";
 import Media from "../database/models/Media";
 import MediaLocation from "../database/models/MediaLocation";
+import { registerMediaHandlers } from "./mediaHandlers";
 
 protocol.registerSchemesAsPrivileged([
     {
@@ -164,7 +165,7 @@ app.whenReady().then(async () => {
 
         MediaLocation.belongsTo(GallerySet, {
             foreignKey: "setId",
-            as: "set"
+            as: "gallerySet"
         });
 
         MediaLocation.belongsTo(Miniset, {
@@ -199,6 +200,7 @@ app.whenReady().then(async () => {
 
         registerModelHandlers();
         registerSetHandlers();
+        registerMediaHandlers();
 
         console.log("Banco SQLite conectado com sucesso!");
     } catch (error) {
