@@ -36,6 +36,7 @@ interface ElectronAPI {
     createModel(data: {
         name: string;
         description: string;
+        folderPath: string;
     }): Promise<ModelRecord>;
 
     listModels(): Promise<ModelRecord[]>;
@@ -89,6 +90,8 @@ interface ElectronAPI {
         total: number;
         generated: number;
     }>;
+
+    selectModelFolder(): Promise<string | null>;
 }
 
 declare global {

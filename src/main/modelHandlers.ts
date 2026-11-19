@@ -1,20 +1,39 @@
-import { ipcMain } from "electron";
+import { dialog, ipcMain } from "electron";
+import { generateThumbnailFromFolder } from "./services/thumbnailGenerator";
 import Model from "../database/models/Model";
 
 export function registerModelHandlers(): void {
 
+    ipcMain.handle("models:select-folder", async () => {
+        const result = await dialog.showOpenDialog({
+            properties: ["openDirectory"]
+        });
+
+        if (result.canceled || result.filePaths.length === 0) {
+            return null;
+        }
+
+        return result.filePaths[0];
+    });
+
     ipcMain.handle("models:create", async (_event, data) => {
         const name = String(data?.name ?? "").trim();
         const description = String(data?.description ?? "").trim();
+        const folderPath = String(data?.folderPath ?? "").trim();
 
         if (!name) {
             throw new Error("O nome do modelo é obrigatório.");
         }
 
+        const thumbnailPath = folderPath
+            ? await generateThumbnailFromFolder(folderPath)
+            : null;
+
         const model = await Model.create({
             name,
             description: description || null,
-            thumbnailPath: null
+            folderPath: folderPath || null,
+            thumbnailPath: thumbnailPath || null,
         });
 
         return model.toJSON();

@@ -53,4 +53,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
     generateMissingSetThumbnails: () =>
         ipcRenderer.invoke("sets:generate-missing-thumbnails"),
+
+    selectModelFolder: () =>
+        ipcRenderer.invoke("models:select-folder"),
 });

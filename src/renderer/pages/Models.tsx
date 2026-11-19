@@ -15,6 +15,7 @@ function Models() {
     const [showForm, setShowForm] = useState(false);
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
+    const [folderPath, setFolderPath] = useState("");
     const [saving, setSaving] = useState(false);
     const [search, setSearch] = useState("");
     const [editingModel, setEditingModel] = useState<Model | null>(null);
@@ -34,6 +35,18 @@ function Models() {
         loadModels();
     }, []);
 
+    async function handleSelectFolder() {
+        try {
+            const selectedFolder = await window.electronAPI.selectModelFolder();
+
+            if (selectedFolder) {
+                setFolderPath(selectedFolder);
+            }
+        } catch (error) {
+            console.error("Erro ao selecionar pasta:", error);
+            alert("Não foi possível selecionar a pasta.");
+        }
+    }
 
     async function handleCreateModel() {
         if (!name.trim()) {
@@ -46,7 +59,8 @@ function Models() {
 
             await window.electronAPI.createModel({
                 name: name.trim(),
-                description: description.trim()
+                description: description.trim(),
+                folderPath: folderPath.trim(),
             });
 
             const updatedModels = await window.electronAPI.listModels();
@@ -177,6 +191,24 @@ function Models() {
                                 value={description}
                                 onChange={(event) => setDescription(event.target.value)}
                             />
+                            <label>Pasta do modelo</label>
+
+                            <div className="folder-selection">
+                                <input
+                                    type="text"
+                                    value={folderPath}
+                                    placeholder="Selecione a pasta do modelo..."
+                                    readOnly
+                                />
+
+                                <button
+                                    type="button"
+                                    className="secondary-button"
+                                    onClick={handleSelectFolder}
+                                >
+                                    Selecionar pasta
+                                </button>
+                            </div>
                         </div>
 
                         <div className="modal-footer">
