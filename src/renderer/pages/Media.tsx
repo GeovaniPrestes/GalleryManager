@@ -5,6 +5,8 @@ function Media() {
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [hasMore, setHasMore] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
 
     async function loadMedia() {
         try {
@@ -19,11 +21,32 @@ function Media() {
             setMedia(result.media);
             setTotal(result.total);
 
+            setHasMore(result.media.length + 0 < result.total);
+
         } catch (error) {
             console.error("Erro ao carregar mídias:", error);
             setError("Não foi possível carregar as mídias.");
         } finally {
             setLoading(false);
+        }
+    }
+
+    async function loadMore() {
+        try {
+            setLoadingMore(true);
+
+            const result = await window.electronAPI.listMedia({
+                limit: 100,
+                offset: media.length
+            });
+
+            setMedia(previous => [...previous, ...result.media]);
+            setHasMore(media.length + result.media.length < total);
+
+        } catch (error) {
+            console.error("Erro ao carregar mais mídias:", error);
+        } finally {
+            setLoadingMore(false);
         }
     }
 
@@ -69,6 +92,15 @@ function Media() {
                             </div>
                         ))}
                     </div>
+                    {hasMore && (
+                        <button
+                            type="button"
+                            onClick={loadMore}
+                            disabled={loadingMore}
+                        >
+                            {loadingMore ? "Carregando..." : "Carregar mais"}
+                        </button>
+                    )}
                 </>
             )}
         </div>
