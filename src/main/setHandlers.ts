@@ -22,8 +22,8 @@ export function registerSetHandlers(): void {
         const name = String(data?.name ?? "").trim();
         const description = String(data?.description ?? "").trim();
         const folderPath = String(data?.folderPath ?? "").trim();
-        const modelIds = Array.isArray(data?.modelIds)
-            ? data.modelIds.map(Number)
+        const modelIds: number[] = Array.isArray(data?.modelIds)
+            ? data.modelIds.map((id: unknown) => Number(id))
             : [];
 
         if (!name) {
@@ -42,12 +42,42 @@ export function registerSetHandlers(): void {
             throw new Error("Essa pasta já está cadastrada em outro set.");
         }
 
+
+        const uniqueModelIds = [...new Set(modelIds)];
+
+        if (uniqueModelIds.some(
+            (id) => !Number.isInteger(id) || id <= 0
+        )) {
+            throw new Error("Um ou mais modelos selecionados são inválidos.");
+        }
+
+        if (uniqueModelIds.length > 0) {
+            const existingModels = await Model.findAll({
+                where: {
+                    id: uniqueModelIds
+                }
+            });
+
+            if (existingModels.length !== uniqueModelIds.length) {
+                throw new Error("Um ou mais modelos não foram encontrados.");
+            }
+        }
+
         const gallerySet = await GallerySet.create({
             name,
             description: description || null,
             folderPath,
             thumbnailPath: null
         });
+
+        if (uniqueModelIds.length > 0) {
+            await SetModel.bulkCreate(
+                uniqueModelIds.map((modelId) => ({
+                    setId: gallerySet.id,
+                    modelId
+                }))
+            );
+        }
 
         return gallerySet.toJSON();
     });

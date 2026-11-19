@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
         name: string;
         description: string;
         folderPath: string;
+        modelIds: number[];
     }) => ipcRenderer.invoke("sets:create", data),
 
     listSets: () => ipcRenderer.invoke("sets:list"),

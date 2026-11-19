@@ -37,6 +37,7 @@ interface ElectronAPI {
         name: string;
         description: string;
         folderPath: string;
+        modelIds: number[];
     }): Promise<SetRecord>;
 
     listSets(): Promise<SetRecord[]>;
@@ -50,4 +51,4 @@ declare global {
     }
 }
 
-export { type SetRecord };
+export { type SetRecord, type ModelRecord };

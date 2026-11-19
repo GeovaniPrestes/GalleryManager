@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import type { SetRecord } from "../electron";
+import type { ModelRecord } from "../electron";
 
 function Sets() {
     const [sets, setSets] = useState<SetRecord[]>([]);
+    const [models, setModels] = useState<ModelRecord[]>([]);
+    const [selectedModels, setSelectedModels] = useState<number[]>([]);
     const [loading, setLoading] = useState(true);
 
     const [showForm, setShowForm] = useState(false);
@@ -15,8 +18,13 @@ function Sets() {
     useEffect(() => {
         async function loadSets() {
             try {
-                const result = await window.electronAPI.listSets();
-                setSets(result);
+                const [setsResult, modelsResult] = await Promise.all([
+                    window.electronAPI.listSets(),
+                    window.electronAPI.listModels()
+                ]);
+
+                setSets(setsResult);
+                setModels(modelsResult);
             } catch (error) {
                 console.error("Erro ao carregar sets:", error);
             } finally {
@@ -26,7 +34,6 @@ function Sets() {
 
         loadSets();
     }, []);
-
 
     async function handleCreateSet() {
         if (!name.trim()) {
@@ -45,7 +52,8 @@ function Sets() {
             await window.electronAPI.createSet({
                 name: name.trim(),
                 description: description.trim(),
-                folderPath
+                folderPath,
+                modelIds: selectedModels
             });
 
             const updatedSets = await window.electronAPI.listSets();
@@ -54,6 +62,7 @@ function Sets() {
             setName("");
             setDescription("");
             setFolderPath("");
+            setSelectedModels([]);
             setShowForm(false);
 
         } catch (error) {
@@ -65,6 +74,15 @@ function Sets() {
         }
     }
 
+    function handleToggleModel(modelId: number) {
+        setSelectedModels((current) => {
+            if (current.includes(modelId)) {
+                return current.filter((id) => id !== modelId);
+            }
+
+            return [...current, modelId];
+        });
+    }
 
     return (
         <div className="sets-page">
@@ -171,6 +189,35 @@ function Sets() {
                                 Selecionar pasta
                             </button>
                         </div>
+
+
+                        <label>Modelos participantes</label>
+
+                        <div className="model-selection-list">
+                            {models.length === 0 ? (
+                                <p>Nenhum modelo cadastrado.</p>
+                            ) : (
+                                models.map((model) => (
+                                    <label
+                                        className="model-selection-item"
+                                        key={model.id}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedModels.includes(model.id)}
+                                            onChange={() => handleToggleModel(model.id)}
+                                        />
+
+                                        <span>{model.name}</span>
+                                    </label>
+                                ))
+                            )}
+                        </div>
+
+                        <p className="selection-count">
+                            {selectedModels.length} modelo(s) selecionado(s)
+                        </p>
+
 
                         <div className="modal-footer">
                             <button
