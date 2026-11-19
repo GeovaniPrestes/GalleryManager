@@ -15,5 +15,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
     }) => ipcRenderer.invoke("models:update", data),
 
     deleteModel: (id: number) =>
-        ipcRenderer.invoke("models:delete", id)
+        ipcRenderer.invoke("models:delete", id),
+
+    createSet: (data: {
+        name: string;
+        description: string;
+        folderPath: string;
+    }) => ipcRenderer.invoke("sets:create", data),
+
+    listSets: () => ipcRenderer.invoke("sets:list"),
+
+    selectSetFolder: () =>
+        ipcRenderer.invoke("sets:select-folder"),
 });

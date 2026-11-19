@@ -4,6 +4,7 @@ import { registerModelHandlers } from "./modelHandlers";
 import { createDatabase } from "../database/connection";
 import Model from "../database/models/Model";
 import GallerySet from "../database/models/GallerySet";
+import { registerSetHandlers } from "./setHandlers";
 
 function createWindow(): void {
     const mainWindow = new BrowserWindow({
@@ -39,6 +40,7 @@ app.whenReady().then(async () => {
         await GallerySet.sync();
 
         registerModelHandlers();
+        registerSetHandlers();
 
         console.log("Banco SQLite conectado com sucesso!");
         console.log("Tabela Models criada/verificada com sucesso!");

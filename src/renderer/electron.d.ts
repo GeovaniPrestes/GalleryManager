@@ -7,6 +7,16 @@ interface ModelRecord {
     updatedAt: Date;
 }
 
+interface SetRecord {
+    id: number;
+    name: string;
+    description: string | null;
+    folderPath: string;
+    thumbnailPath: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
 interface ElectronAPI {
     createModel(data: {
         name: string;
@@ -22,6 +32,16 @@ interface ElectronAPI {
     }): Promise<ModelRecord>;
 
     deleteModel(id: number): Promise<{ success: boolean }>;
+
+    createSet(data: {
+        name: string;
+        description: string;
+        folderPath: string;
+    }): Promise<SetRecord>;
+
+    listSets(): Promise<SetRecord[]>;
+
+    selectSetFolder(): Promise<string | null>;
 }
 
 declare global {
