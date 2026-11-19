@@ -14,11 +14,13 @@ interface MediaLocationAttributes {
     fileName: string;
     extension: string;
     fileSize: number;
+    setId: number | null;
+    minisetId: number | null;
 }
 
 interface MediaLocationCreationAttributes extends Optional<
     MediaLocationAttributes,
-    "id"
+    "id" | "setId" | "minisetId"
 > { }
 
 class MediaLocation extends SequelizeModel<
@@ -31,6 +33,8 @@ class MediaLocation extends SequelizeModel<
     declare fileName: string;
     declare extension: string;
     declare fileSize: number;
+    declare setId: number | null;
+    declare minisetId: number | null;
 }
 
 MediaLocation.init(
@@ -49,6 +53,26 @@ MediaLocation.init(
             },
             onUpdate: "CASCADE",
             onDelete: "CASCADE"
+        },
+        setId: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            references: {
+                model: "sets",
+                key: "id"
+            },
+            onUpdate: "CASCADE",
+            onDelete: "CASCADE"
+        },
+        minisetId: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            references: {
+                model: "minisets",
+                key: "id"
+            },
+            onUpdate: "CASCADE",
+            onDelete: "SET NULL"
         },
         filePath: {
             type: DataTypes.STRING,
