@@ -8,6 +8,11 @@ function Media() {
     const [hasMore, setHasMore] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
     const [selectedMedia, setSelectedMedia] = useState<any | null>(null);
+    const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+    const [zoom, setZoom] = useState(1);
+    const [position, setPosition] = useState({ x: 0, y: 0 });
+    const [dragging, setDragging] = useState(false);
+    const [dragOrigin, setDragOrigin] = useState({ x: 0, y: 0 });
 
     async function loadMedia() {
         try {
@@ -51,9 +56,52 @@ function Media() {
         }
     }
 
+    function navigateMedia(direction: number) {
+        if (selectedIndex === null) return;
+
+        const nextIndex = selectedIndex + direction;
+
+        if (nextIndex < 0 || nextIndex >= media.length) return;
+
+        setSelectedIndex(nextIndex);
+        setSelectedMedia(media[nextIndex]);
+        setZoom(1);
+        setPosition({ x: 0, y: 0 });
+    }
+
     useEffect(() => {
         loadMedia();
     }, []);
+
+    useEffect(() => {
+        if (!selectedMedia) return;
+
+        function handleKeyDown(event: KeyboardEvent) {
+            if (event.key === "Escape") {
+                setSelectedMedia(null);
+                setSelectedIndex(null);
+                setZoom(1);
+            }
+
+            if (event.key === "ArrowLeft") {
+                navigateMedia(-1);
+            }
+
+            if (event.key === "ArrowRight") {
+                navigateMedia(1);
+            }
+
+            if (event.key === "0") {
+                setZoom(1);
+            }
+        }
+
+        window.addEventListener("keydown", handleKeyDown);
+
+        return () => {
+            window.removeEventListener("keydown", handleKeyDown);
+        };
+    }, [selectedMedia, selectedIndex, media]);
 
     return (
         <div className="media-page">
@@ -78,7 +126,13 @@ function Media() {
                             <div
                                 className="media-card"
                                 key={item.id}
-                                onClick={() => setSelectedMedia(item)}
+                                onClick={() => {
+                                    setSelectedIndex(media.findIndex(m => m.id === item.id));
+                                    setSelectedMedia(item);
+                                    setZoom(1);
+                                    setPosition({ x: 0, y: 0 });
+                                    setDragging(false);
+                                }}
                             >
                                 {item.thumbnailPath ? (
                                     <img
@@ -112,21 +166,122 @@ function Media() {
                 <div
                     className="media-viewer"
                     onClick={() => setSelectedMedia(null)}
+                    onMouseMove={(event) => {
+                        if (!dragging) return;
+
+                        setPosition({
+                            x: event.clientX - dragOrigin.x,
+                            y: event.clientY - dragOrigin.y
+                        });
+                    }}
+                    onMouseUp={() => setDragging(false)}
+                    onMouseLeave={() => setDragging(false)}
                 >
                     <button
                         className="media-viewer-close"
-                        onClick={() => setSelectedMedia(null)}
+                        onClick={() => {
+                            setSelectedMedia(null);
+                            setSelectedIndex(null);
+                            setZoom(1);
+                        }}
                     >
                         ×
                     </button>
+                    <button
+                        className="media-viewer-prev"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            navigateMedia(-1);
+                        }}
+                        disabled={selectedIndex === 0}
+                    >
+                        ❮
+                    </button>
 
-                    <img
-                        src={`preview://image?path=${encodeURIComponent(
-                            selectedMedia.locations[0].filePath
-                        )}`}
-                        alt={selectedMedia.locations[0].fileName}
-                        onClick={(event) => event.stopPropagation()}
-                    />
+                    <div className="media-viewer-counter">
+                        {selectedIndex !== null ? selectedIndex + 1 : 0} de {total}
+                    </div>
+
+                    <button
+                        className="media-viewer-next"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            navigateMedia(1);
+                        }}
+                        disabled={selectedIndex === media.length - 1}
+                    >
+                        ❯
+                    </button>
+                    <div className="media-viewer-zoom">
+                        <button
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                setZoom(previous => Math.max(0.5, previous - 0.25));
+                            }}
+                        >
+                            −
+                        </button>
+
+                        <span>{Math.round(zoom * 100)}%</span>
+
+                        <button
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                setZoom(previous => Math.min(4, previous + 0.25));
+                            }}
+                        >
+                            +
+                        </button>
+
+                        <button
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                setZoom(1);
+                            }}
+                        >
+                            Ajustar
+                        </button>
+                    </div>
+                    {selectedMedia.mediaType === "video" ? (
+                        <video
+                            src={`preview://image?path=${encodeURIComponent(selectedMedia.locations[0].filePath)}`}
+                            controls
+                            autoPlay
+                            onClick={(event) => event.stopPropagation()}
+                            style={{
+                                maxWidth: "90%",
+                                maxHeight: "90%",
+                                objectFit: "contain"
+                            }}
+                        />
+                    ) : (
+                        <img
+                            src={`preview://image?path=${encodeURIComponent(selectedMedia.locations[0].filePath)}`}
+                            alt={selectedMedia.locations[0].fileName}
+                            style={{
+                                transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
+                                transition: dragging ? "none" : "transform 0.2s ease",
+                                cursor: zoom > 1 ? dragging ? "grabbing" : "grab" : "default"
+                            }}
+                            onClick={(event) => event.stopPropagation()}
+                            onWheel={(event) => {
+                                event.stopPropagation();
+                                setZoom(previous => {
+                                    const change = event.deltaY < 0 ? 0.25 : -0.25;
+                                    return Math.min(4, Math.max(0.5, previous + change));
+                                });
+                            }}
+                            onMouseDown={(event) => {
+                                if (zoom <= 1) return;
+                                event.preventDefault();
+                                setDragging(true);
+                                setDragOrigin({
+                                    x: event.clientX - position.x,
+                                    y: event.clientY - position.y
+                                });
+                            }}
+                        />
+                    )}
                 </div>
             )}
         </div>
