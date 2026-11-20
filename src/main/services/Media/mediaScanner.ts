@@ -84,3 +84,14 @@ export async function scanMediaFolder(
 
     return mediaFiles;
 }
+
+export interface MediaIndexCheckResult {
+    setId: number;
+    totalFiles: number;
+    registeredFiles: number;
+    newFiles: number;
+    removedFiles: number;
+    changedFiles: number;
+    status: "pending" | "error" | "changed" | "indexed";
+    needsIndexing: boolean;
+}

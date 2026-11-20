@@ -34,6 +34,155 @@ function Sets({ onOpenSet }: SetsProps) {
 
     const [scanning, setScanning] = useState(false);
 
+    const [showAutoIndexForm, setShowAutoIndexForm] = useState(false);
+    const [autoIndexModelId, setAutoIndexModelId] = useState<number | "">("");
+    const [scannedIndexSets, setScannedIndexSets] = useState<Array<
+        SetRecord & {
+            totalFiles: number;
+            registeredFiles: number;
+            newFiles: number;
+            removedFiles: number;
+            changedFiles: number;
+            status: "pending" | "error" | "changed" | "indexed";
+            needsIndexing: boolean;
+        }
+    >>([]);
+    const [selectedIndexSets, setSelectedIndexSets] = useState<number[]>([]);
+    const [indexingAll, setIndexingAll] = useState(false);
+
+    const [indexingProgress, setIndexingProgress] = useState({
+        current: 0,
+        total: 0,
+        currentSetName: ""
+    });
+
+    const [autoIndexResults, setAutoIndexResults] = useState<Array<{
+        setId: number;
+        setName: string;
+        success: boolean;
+        error?: string;
+    }>>([]);
+
+    async function handleCheckMediaIndex() {
+        if (autoIndexModelId === "") {
+            alert("Selecione um Modelo.");
+            return;
+        }
+
+        const associatedSets = sets.filter((gallerySet) =>
+            gallerySet.models.some(
+                (model) => model.id === autoIndexModelId
+            )
+        );
+
+        if (associatedSets.length === 0) {
+            alert("Este Modelo não possui Sets cadastrados.");
+            return;
+        }
+
+        setScanning(true);
+
+        try {
+            const results = await window.electronAPI.checkMediaIndex(
+                associatedSets.map((gallerySet) => gallerySet.id)
+            );
+
+            const setsWithResults = associatedSets.flatMap((gallerySet) => {
+                const result = results.find(
+                    (item) => item.setId === gallerySet.id
+                );
+
+                if (!result) return [];
+
+                return [{
+                    ...gallerySet,
+                    ...result
+                }];
+            });
+
+            setScannedIndexSets(setsWithResults);
+
+            setSelectedIndexSets(
+                results
+                    .filter((result) => result.needsIndexing)
+                    .map((result) => result.setId)
+            );
+
+        } catch (error) {
+            console.error("Erro ao verificar indexação:", error);
+            alert("Não foi possível verificar os Sets.");
+        } finally {
+            setScanning(false);
+        }
+    }
+
+    async function handleIndexSelectedSets() {
+        if (selectedIndexSets.length === 0) {
+            alert("Selecione pelo menos um Set para indexar.");
+            return;
+        }
+
+        setIndexingAll(true);
+        setAutoIndexResults([]);
+
+        setIndexingProgress({
+            current: 0,
+            total: selectedIndexSets.length,
+            currentSetName: ""
+        });
+
+        const results: typeof autoIndexResults = [];
+
+        for (let i = 0; i < selectedIndexSets.length; i++) {
+            const setId = selectedIndexSets[i];
+
+            const gallerySet = scannedIndexSets.find(
+                (item) => item.id === setId
+            );
+
+            if (!gallerySet) continue;
+
+            setIndexingProgress({
+                current: i + 1,
+                total: selectedIndexSets.length,
+                currentSetName: gallerySet.name
+            });
+
+            try {
+                await window.electronAPI.indexSetMedia(setId);
+
+                results.push({
+                    setId,
+                    setName: gallerySet.name,
+                    success: true
+                });
+
+            } catch (error) {
+                console.error(`Erro ao indexar ${gallerySet.name}:`, error);
+
+                results.push({
+                    setId,
+                    setName: gallerySet.name,
+                    success: false,
+                    error: error instanceof Error
+                        ? error.message
+                        : "Erro desconhecido."
+                });
+            }
+
+            setAutoIndexResults([...results]);
+        }
+
+        await loadSets();
+
+        setIndexingAll(false);
+        setIndexingProgress({
+            current: 0,
+            total: 0,
+            currentSetName: ""
+        });
+    }
+
     async function loadSets() {
         try {
             const [setsResult, modelsResult] = await Promise.all([
@@ -314,6 +463,18 @@ function Sets({ onOpenSet }: SetsProps) {
                 </div>
 
                 <div className="page-actions">
+                    <button
+                        className="btn-secondary"
+                        onClick={() => {
+                            setShowAutoIndexForm(true);
+                            setAutoIndexModelId("");
+                            setScannedIndexSets([]);
+                            setSelectedIndexSets([]);
+                            setAutoIndexResults([]);
+                        }}
+                    >
+                        Indexar mídias automaticamente
+                    </button>
                     <button
                         className="secondary-button"
                         onClick={() => {
@@ -723,6 +884,161 @@ function Sets({ onOpenSet }: SetsProps) {
                                 onClick={() => setShowAutoForm(false)}
                             >
                                 Fechar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {showAutoIndexForm && (
+                <div className="modal-overlay">
+                    <div className="modal">
+                        <div className="modal-header">
+                            <h2>Indexar mídias automaticamente</h2>
+                        </div>
+
+                        <div className="modal-body">
+                            <label>Selecione o Modelo</label>
+
+                            <select
+                                value={autoIndexModelId}
+                                onChange={(e) => {
+                                    setAutoIndexModelId(
+                                        e.target.value === ""
+                                            ? ""
+                                            : Number(e.target.value)
+                                    );
+
+                                    setScannedIndexSets([]);
+                                    setSelectedIndexSets([]);
+                                }}
+                                disabled={indexingAll}
+                            >
+                                <option value="">Selecione...</option>
+
+                                {models.map((model) => (
+                                    <option key={model.id} value={model.id}>
+                                        {model.name}
+                                    </option>
+                                ))}
+                            </select>
+
+                            <button
+                                className="btn-primary"
+                                onClick={handleCheckMediaIndex}
+                                disabled={scanning || indexingAll || autoIndexModelId === ""}
+                            >
+                                {scanning ? "Verificando..." : "Verificar Sets"}
+                            </button>
+                            {scannedIndexSets.length > 0 && (
+                                <div className="auto-index-list">
+                                    <h3>Sets encontrados ({scannedIndexSets.length})</h3>
+
+                                    {scannedIndexSets.map((gallerySet) => (
+                                        <div className="auto-index-item" key={gallerySet.id}>
+                                            <label>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedIndexSets.includes(gallerySet.id)}
+                                                    onChange={(e) => {
+                                                        setSelectedIndexSets((previous) =>
+                                                            e.target.checked
+                                                                ? [...previous, gallerySet.id]
+                                                                : previous.filter(
+                                                                    (id) => id !== gallerySet.id
+                                                                )
+                                                        );
+                                                    }}
+                                                    disabled={indexingAll}
+                                                />
+
+                                                <strong>{gallerySet.name}</strong>
+                                            </label>
+
+                                            <span>
+                                                {gallerySet.status === "pending" && "Pendente"}
+                                                {gallerySet.status === "error" && "Erro anterior"}
+                                                {gallerySet.status === "changed" && "Alterações detectadas"}
+                                                {gallerySet.status === "indexed" && "Atualizado"}
+                                            </span>
+
+                                            <div className="auto-index-details">
+                                                <span>Arquivos: {gallerySet.totalFiles}</span>
+                                                <span>Novos: {gallerySet.newFiles}</span>
+                                                <span>Removidos: {gallerySet.removedFiles}</span>
+                                                <span>Alterados: {gallerySet.changedFiles}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            {indexingAll && (
+                                <div className="auto-index-progress">
+                                    <h3>Indexando mídias...</h3>
+
+                                    <p>
+                                        Set {indexingProgress.current} de {indexingProgress.total}
+                                    </p>
+
+                                    <strong>{indexingProgress.currentSetName}</strong>
+
+                                    <div className="progress-bar">
+                                        <div
+                                            className="progress-bar-fill"
+                                            style={{
+                                                width: `${indexingProgress.total > 0
+                                                    ? (indexingProgress.current / indexingProgress.total) * 100
+                                                    : 0
+                                                    }%`
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                            {autoIndexResults.length > 0 && (
+                                <div className="auto-index-results">
+                                    <h3>Resultados da indexação</h3>
+
+                                    {autoIndexResults.map((result) => (
+                                        <div
+                                            className="auto-index-result-item"
+                                            key={result.setId}
+                                        >
+                                            <strong>{result.setName}</strong>
+
+                                            <span className={result.success ? "success" : "error"}>
+                                                {result.success ? "Concluído" : "Falhou"}
+                                            </span>
+
+                                            {result.error && (
+                                                <p>{result.error}</p>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="modal-footer">
+                            <button
+                                className="btn-secondary"
+                                onClick={() => setShowAutoIndexForm(false)}
+                                disabled={indexingAll}
+                            >
+                                Fechar
+                            </button>
+
+                            <button
+                                className="btn-primary"
+                                onClick={handleIndexSelectedSets}
+                                disabled={
+                                    indexingAll ||
+                                    selectedIndexSets.length === 0 ||
+                                    scannedIndexSets.length === 0
+                                }
+                            >
+                                {indexingAll
+                                    ? "Indexando..."
+                                    : `Indexar selecionados (${selectedIndexSets.length})`}
                             </button>
                         </div>
                     </div>

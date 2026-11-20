@@ -5,7 +5,7 @@ import Miniset from "../../../database/models/Miniset";
 import { registerAuditLog } from "../auditLogger";
 import { generateThumbnail, generateVideoThumbnail } from "../thumbnailGenerator";
 
-import { scanMediaFolder } from "./mediaScanner";
+import { scanMediaFolder, MediaIndexCheckResult } from "./mediaScanner";
 import { calculateFileHash } from "./mediaHash";
 
 export interface MediaIndexResult {
@@ -21,6 +21,85 @@ function normalizePath(filePath: string): string {
         .replace(/\\/g, "/")
         .replace(/\/+/g, "/")
         .toLowerCase();
+}
+
+export async function checkSetMediaIndex(
+    setId: number
+): Promise<MediaIndexCheckResult> {
+    const gallerySet = await GallerySet.findByPk(setId);
+
+    if (!gallerySet) {
+        throw new Error("Set não encontrado.");
+    }
+
+    const scannedFiles = await scanMediaFolder(gallerySet.folderPath);
+
+    const existingLocations = await MediaLocation.findAll({
+        where: { setId }
+    });
+
+    const scannedMap = new Map(
+        scannedFiles.map(file => [
+            normalizePath(file.filePath),
+            file
+        ])
+    );
+
+    const existingMap = new Map(
+        existingLocations.map(location => [
+            normalizePath(location.filePath),
+            location
+        ])
+    );
+
+    let newFiles = 0;
+    let removedFiles = 0;
+    let changedFiles = 0;
+
+    for (const [path, file] of scannedMap) {
+        const existing = existingMap.get(path);
+
+        if (!existing) {
+            newFiles++;
+            continue;
+        }
+
+        if (
+            existing.fileSize !== file.fileSize ||
+            existing.extension.toLowerCase() !== file.extension.toLowerCase()
+        ) {
+            changedFiles++;
+        }
+    }
+
+    for (const path of existingMap.keys()) {
+        if (!scannedMap.has(path)) {
+            removedFiles++;
+        }
+    }
+
+    let status: MediaIndexCheckResult["status"];
+
+    if (gallerySet.mediaIndexStatus === "pending") {
+        status = "pending";
+    } else if (gallerySet.mediaIndexStatus === "error") {
+        status = "error";
+    } else if (newFiles > 0 || removedFiles > 0 || changedFiles > 0) {
+        status = "changed";
+    } else {
+        status = "indexed";
+    }
+
+    return {
+        setId,
+        totalFiles: scannedFiles.length,
+        registeredFiles: existingLocations.length,
+        newFiles,
+        removedFiles,
+        changedFiles,
+        status,
+        needsIndexing: status !== "indexed"
+    };
 }
 
 export async function indexSetMedia(

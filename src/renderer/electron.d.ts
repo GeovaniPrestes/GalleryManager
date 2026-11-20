@@ -209,6 +209,17 @@ interface ElectronAPI {
         folderPath: string;
         alreadyRegistered: boolean;
     }>>;
+
+    checkMediaIndex: (setIds: number[]) => Promise<Array<{
+        setId: number;
+        totalFiles: number;
+        registeredFiles: number;
+        newFiles: number;
+        removedFiles: number;
+        changedFiles: number;
+        status: "pending" | "error" | "changed" | "indexed";
+        needsIndexing: boolean;
+    }>>;
 }
 
 declare global {

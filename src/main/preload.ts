@@ -82,4 +82,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
     scanModelSetFolders: (modelId: number) =>
         ipcRenderer.invoke("sets:scan-model-folders", modelId),
+
+    checkMediaIndex: (setIds: number[]) =>
+        ipcRenderer.invoke("sets:check-media-index", setIds),
 });

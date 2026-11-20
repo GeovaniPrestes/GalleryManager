@@ -2,7 +2,7 @@ import { dialog, ipcMain } from "electron";
 import { scanMinisetFolders } from "./services/minisetScanner";
 import { generateThumbnail, generateThumbnailFromFolder } from "./services/thumbnailGenerator";
 import { allowPreviewPath } from "./services/previewAccess";
-import { indexSetMedia } from "./services/Media/mediaIndexer";
+import { indexSetMedia, checkSetMediaIndex } from "./services/Media/mediaIndexer";
 import { registerAuditLog } from "./services/auditLogger";
 import { resolve } from "node:path";
 import { scanSetFolders } from "./services/setFolderScanner";
@@ -50,6 +50,26 @@ export function registerSetHandlers(): void {
         }));
     });
 
+    ipcMain.handle("sets:check-media-index", async (_event, setIds) => {
+        if (!Array.isArray(setIds) || setIds.length === 0) {
+            throw new Error("Nenhum Set informado para verificação.");
+        }
+
+        const results = [];
+
+        for (const id of setIds) {
+            const setId = Number(id);
+
+            if (!Number.isInteger(setId) || setId <= 0) {
+                throw new Error("ID de Set inválido.");
+            }
+
+            const result = await checkSetMediaIndex(setId);
+            results.push(result);
+        }
+
+        return results;
+    });
 
     ipcMain.handle("sets:index-media", async (_event, id) => {
         const setId = Number(id);
