@@ -13,7 +13,18 @@ export function registerAuditHandlers(): void {
             0
         );
 
+        const where: any = {};
+
+        if (data?.action) {
+            where.action = data.action;
+        }
+
+        if (data?.entity) {
+            where.entity = data.entity;
+        }
+
         const result = await AuditLog.findAndCountAll({
+            where,
             limit,
             offset,
             order: [["createdAt", "DESC"]]

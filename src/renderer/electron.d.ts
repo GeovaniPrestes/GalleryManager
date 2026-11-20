@@ -146,6 +146,8 @@ interface ElectronAPI {
     listAuditLogs: (data: {
         limit: number;
         offset: number;
+        action?: "create" | "update" | "delete";
+        entity?: string;
     }) => Promise<{
         total: number;
         logs: Array<{

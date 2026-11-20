@@ -70,7 +70,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
         limit: number;
         offset: number;
     }) => ipcRenderer.invoke("media:list", data),
-    
-    listAuditLogs: (data: { limit: number; offset: number }) =>
-    ipcRenderer.invoke("audit:list", data),
+
+    listAuditLogs: (data: {
+        limit: number;
+        offset: number;
+        action?: "create" | "update" | "delete";
+        entity?: string;
+    }) => ipcRenderer.invoke("audit:list", data),
 });

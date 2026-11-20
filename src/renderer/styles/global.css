@@ -48,3 +48,59 @@ input {
     color: #f87171;
     background-color: rgba(239, 68, 68, 0.12);
 }
+
+/* Filtros da auditoria */
+
+.audit-filters {
+    display: flex;
+    gap: 12px;
+    margin: 20px 0;
+}
+
+.audit-filters select {
+    min-width: 180px;
+    padding: 10px 12px;
+    border: 1px solid #303640;
+    border-radius: 6px;
+    background-color: #1b1f27;
+    color: #e5e7eb;
+    outline: none;
+    cursor: pointer;
+}
+
+.audit-filters select:focus {
+    border-color: #60a5fa;
+}
+
+/* Paginação da auditoria */
+
+.audit-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 24px;
+    padding: 16px 0;
+}
+
+.audit-pagination button {
+    padding: 8px 16px;
+    border: 1px solid #303640;
+    border-radius: 6px;
+    background-color: #1b1f27;
+    color: #e5e7eb;
+    cursor: pointer;
+}
+
+.audit-pagination button:hover:not(:disabled) {
+    background-color: #303640;
+}
+
+.audit-pagination button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.audit-pagination span {
+    color: #9ca3af;
+}
