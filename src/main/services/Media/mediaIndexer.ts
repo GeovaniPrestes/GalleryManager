@@ -3,7 +3,7 @@ import MediaLocation from "../../../database/models/MediaLocation";
 import GallerySet from "../../../database/models/GallerySet";
 import Miniset from "../../../database/models/Miniset";
 import { registerAuditLog } from "../auditLogger";
-import { generateThumbnail } from "../thumbnailGenerator";
+import { generateThumbnail, generateVideoThumbnail } from "../thumbnailGenerator";
 
 import { scanMediaFolder } from "./mediaScanner";
 import { calculateFileHash } from "./mediaHash";
@@ -123,14 +123,12 @@ export async function indexSetMedia(
                     media.thumbnailPath
                 );
 
-                if (
-                    file.mediaType === "image" &&
-                    !media.thumbnailPath
-                ) {
+                if (!media.thumbnailPath) {
                     console.log("Gerando thumbnail para:", file.filePath);
-                    const thumbnailPath = await generateThumbnail(
-                        file.filePath
-                    );
+
+                    const thumbnailPath = file.mediaType === "image"
+                        ? await generateThumbnail(file.filePath)
+                        : await generateVideoThumbnail(file.filePath);
 
                     await media.update({
                         thumbnailPath
@@ -152,7 +150,7 @@ export async function indexSetMedia(
             } else {
                 const thumbnailPath = file.mediaType === "image"
                     ? await generateThumbnail(file.filePath)
-                    : null;
+                    : await generateVideoThumbnail(file.filePath);
 
                 media = await Media.create({
                     fileHash,
