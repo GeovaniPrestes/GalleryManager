@@ -5,10 +5,9 @@ interface SidebarProps {
 
 function Sidebar({ activePage, onNavigate }: SidebarProps) {
     const menuItems = [
-        { id: "dashboard", label: "Visão geral" },
         { id: "models", label: "Modelos" },
+        { id: "dashboard", label: "Dashboard" },
         { id: "sets", label: "Sets" },
-        { id: "minisets", label: "Minisets" },
         { id: "media", label: "Mídias" },
         { id: "audit", label: "Histórico de atividades" },
         { id: "tags", label: "Tags" }

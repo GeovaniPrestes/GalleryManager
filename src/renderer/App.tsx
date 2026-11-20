@@ -103,7 +103,7 @@ function App() {
 
     return (
         <MainLayout
-            activePage={selectedSet ? "minisets" : activePage}
+            activePage={selectedSet ? "sets" : activePage}
             onNavigate={(page) => {
                 setSelectedSet(null);
                 setSelectedModel(null);
