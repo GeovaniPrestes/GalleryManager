@@ -13,6 +13,7 @@ import Miniset from "../database/models/Miniset";
 import Media from "../database/models/Media";
 import MediaLocation from "../database/models/MediaLocation";
 import { registerMediaHandlers } from "./mediaHandlers";
+import AuditLog from "../database/models/AuditLog";
 
 protocol.registerSchemesAsPrivileged([
     {
@@ -189,6 +190,7 @@ app.whenReady().then(async () => {
         await Miniset.sync();
         await Media.sync();
         await MediaLocation.sync();
+        await AuditLog.sync();
 
         console.log("Verificando migrations pendentes...");
 

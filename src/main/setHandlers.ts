@@ -1,12 +1,13 @@
 import { dialog, ipcMain } from "electron";
-import GallerySet from "../database/models/GallerySet";
-import Model from "../database/models/Model";
-import SetModel from "../database/models/SetModel";
-import Miniset from "../database/models/Miniset";
 import { scanMinisetFolders } from "./services/minisetScanner";
 import { generateThumbnail, generateThumbnailFromFolder } from "./services/thumbnailGenerator";
 import { allowPreviewPath } from "./services/previewAccess";
 import { indexSetMedia } from "./services/Media/mediaIndexer";
+import { registerAuditLog } from "./services/auditLogger";
+import GallerySet from "../database/models/GallerySet";
+import Model from "../database/models/Model";
+import SetModel from "../database/models/SetModel";
+import Miniset from "../database/models/Miniset";
 
 export function registerSetHandlers(): void {
 
@@ -134,9 +135,18 @@ export function registerSetHandlers(): void {
             }
         });
 
-        console.log("Modelos associados ao Set:", savedRelations.map(
-            (relation) => relation.toJSON()
-        ));
+        await registerAuditLog({
+            entity: "GallerySet",
+            entityId: gallerySet.id,
+            action: "create",
+            description: `Set "${gallerySet.name}" criado.`,
+            changes: {
+                name: gallerySet.name,
+                description: gallerySet.description,
+                folderPath: gallerySet.folderPath,
+                modelIds: uniqueModelIds
+            }
+        });
 
         return gallerySet.toJSON();
     });
@@ -192,6 +202,46 @@ export function registerSetHandlers(): void {
                 ? await generateThumbnailFromFolder(folderPath)
                 : gallerySet.thumbnailPath;
 
+        const previousValues = {
+            name: gallerySet.name,
+            description: gallerySet.description,
+            folderPath: gallerySet.folderPath
+        };
+
+        const previousRelations = await SetModel.findAll({
+            where: { setId: id }
+        });
+
+        const previousModelIds = previousRelations
+            .map(relation => relation.modelId)
+            .sort((a, b) => a - b);
+
+        const newModelIds = [...uniqueModelIds].sort((a, b) => a - b);
+
+        const newValues = {
+            name,
+            description: description || null,
+            folderPath
+        };
+
+        const changes: Record<string, { old: any; new: any }> = {};
+
+        for (const key of Object.keys(newValues) as Array<keyof typeof newValues>) {
+            if (previousValues[key] !== newValues[key]) {
+                changes[key] = {
+                    old: previousValues[key],
+                    new: newValues[key]
+                };
+            }
+        }
+
+        if (JSON.stringify(previousModelIds) !== JSON.stringify(newModelIds)) {
+            changes.modelIds = {
+                old: previousModelIds,
+                new: newModelIds
+            };
+        }
+
         const transaction = await GallerySet.sequelize!.transaction();
 
         try {
@@ -233,6 +283,16 @@ export function registerSetHandlers(): void {
 
             await transaction.commit();
 
+            if (Object.keys(changes).length > 0) {
+                await registerAuditLog({
+                    entity: "GallerySet",
+                    entityId: gallerySet.id,
+                    action: "update",
+                    description: `Set "${gallerySet.name}" atualizado.`,
+                    changes
+                });
+            }
+
             return gallerySet.toJSON();
 
         } catch (error) {
@@ -254,6 +314,18 @@ export function registerSetHandlers(): void {
             throw new Error("Set não encontrado.");
         }
 
+        const setData = {
+            name: gallerySet.name,
+            description: gallerySet.description,
+            folderPath: gallerySet.folderPath
+        };
+
+        const relations = await SetModel.findAll({
+            where: { setId }
+        });
+
+        const modelIds = relations.map(relation => relation.modelId);
+
         const transaction = await GallerySet.sequelize!.transaction();
 
         try {
@@ -265,6 +337,17 @@ export function registerSetHandlers(): void {
             await gallerySet.destroy({ transaction });
 
             await transaction.commit();
+
+            await registerAuditLog({
+                entity: "GallerySet",
+                entityId: setId,
+                action: "delete",
+                description: `Set "${setData.name}" excluído.`,
+                changes: {
+                    ...setData,
+                    modelIds
+                }
+            });
 
             return { success: true };
 
@@ -350,12 +433,19 @@ export function registerSetHandlers(): void {
         try {
             const minisetIds = new Map<string, number>();
 
+            const createdMinisets: Miniset[] = [];
+
+            const updatedMinisets: {
+                miniset: Miniset;
+                changes: Record<string, { old: any; new: any }>;
+            }[] = [];
+
             for (const folder of scannedFolders) {
                 const parentId = folder.parentPath
                     ? minisetIds.get(folder.parentPath) ?? null
                     : null;
 
-                const [miniset] = await Miniset.findOrCreate({
+                const [miniset, created] = await Miniset.findOrCreate({
                     where: {
                         folderPath: folder.folderPath
                     },
@@ -369,11 +459,43 @@ export function registerSetHandlers(): void {
                     transaction
                 });
 
+                if (created) {
+                    createdMinisets.push(miniset);
+                }
+
                 const thumbnailPath = miniset.thumbnailPath
                     ?? await generateThumbnailFromFolder(folder.folderPath);
 
-                console.log("Miniset:", folder.name);
-                console.log("Thumbnail:", thumbnailPath);
+                if (!created) {
+                    const changes: Record<string, { old: any; new: any }> = {};
+
+                    const previousValues = {
+                        name: miniset.name,
+                        parentId: miniset.parentId,
+                        setId: miniset.setId,
+                        thumbnailPath: miniset.thumbnailPath
+                    };
+
+                    const newValues = {
+                        name: folder.name,
+                        parentId,
+                        setId,
+                        thumbnailPath
+                    };
+
+                    for (const key of Object.keys(newValues) as Array<keyof typeof newValues>) {
+                        if (previousValues[key] !== newValues[key]) {
+                            changes[key] = {
+                                old: previousValues[key],
+                                new: newValues[key]
+                            };
+                        }
+                    }
+
+                    if (Object.keys(changes).length > 0) {
+                        updatedMinisets.push({ miniset, changes });
+                    }
+                }
 
                 await miniset.update(
                     {
@@ -389,6 +511,31 @@ export function registerSetHandlers(): void {
             }
 
             await transaction.commit();
+
+            for (const miniset of createdMinisets) {
+                await registerAuditLog({
+                    entity: "Miniset",
+                    entityId: miniset.id,
+                    action: "create",
+                    description: `Miniset "${miniset.name}" criado no Set "${gallerySet.name}".`,
+                    changes: {
+                        name: miniset.name,
+                        folderPath: miniset.folderPath,
+                        parentId: miniset.parentId,
+                        setId: miniset.setId
+                    }
+                });
+            }
+
+            for (const item of updatedMinisets) {
+                await registerAuditLog({
+                    entity: "Miniset",
+                    entityId: item.miniset.id,
+                    action: "update",
+                    description: `Miniset "${item.miniset.name}" atualizado no Set "${gallerySet.name}".`,
+                    changes: item.changes
+                });
+            }
 
             return {
                 success: true,

@@ -1,6 +1,7 @@
 import { dialog, ipcMain } from "electron";
 import { generateThumbnail, generateThumbnailFromFolder } from "./services/thumbnailGenerator";
 import { allowPreviewPath } from "./services/previewAccess";
+import { registerAuditLog } from "./services/auditLogger";
 import Model from "../database/models/Model";
 
 export function registerModelHandlers(): void {
@@ -45,15 +46,12 @@ export function registerModelHandlers(): void {
         const description = String(data?.description ?? "").trim();
         const folderPath = String(data?.folderPath ?? "").trim();
         const selectedThumbnail = String(data?.selectedThumbnail ?? "").trim();
-        console.log("Pasta recebida:", folderPath);
 
         const thumbnailPath = selectedThumbnail
             ? await generateThumbnail(selectedThumbnail)
             : folderPath
                 ? await generateThumbnailFromFolder(folderPath)
                 : null;
-
-        console.log("Thumbnail gerada:", thumbnailPath);
 
         if (!name) {
             throw new Error("O nome do modelo é obrigatório.");
@@ -64,6 +62,18 @@ export function registerModelHandlers(): void {
             description: description || null,
             folderPath: folderPath || null,
             thumbnailPath: thumbnailPath || null,
+        });
+
+        await registerAuditLog({
+            entity: "Model",
+            entityId: model.id,
+            action: "create",
+            description: `Modelo "${model.name}" criado.`,
+            changes: {
+                name: model.name,
+                description: model.description,
+                folderPath: model.folderPath
+            }
         });
 
         return model.toJSON();
@@ -97,12 +107,43 @@ export function registerModelHandlers(): void {
                 ? await generateThumbnailFromFolder(folderPath)
                 : model.thumbnailPath;
 
-        await model.update({
+        const previousValues = {
+            name: model.name,
+            description: model.description,
+            folderPath: model.folderPath
+        };
+
+        const newValues = {
             name,
             description: description || null,
-            folderPath: folderPath || null,
+            folderPath: folderPath || null
+        };
+
+        const changes: Record<string, { old: any; new: any }> = {};
+
+        for (const key of Object.keys(newValues) as Array<keyof typeof newValues>) {
+            if (previousValues[key] !== newValues[key]) {
+                changes[key] = {
+                    old: previousValues[key],
+                    new: newValues[key]
+                };
+            }
+        }
+
+        await model.update({
+            ...newValues,
             thumbnailPath
         });
+
+        if (Object.keys(changes).length > 0) {
+            await registerAuditLog({
+                entity: "Model",
+                entityId: model.id,
+                action: "update",
+                description: `Modelo "${model.name}" atualizado.`,
+                changes
+            });
+        }
 
         return model.toJSON();
     });
@@ -119,6 +160,18 @@ export function registerModelHandlers(): void {
         if (!model) {
             throw new Error("Modelo não encontrado.");
         }
+
+        await registerAuditLog({
+            entity: "Model",
+            entityId: model.id,
+            action: "delete",
+            description: `Modelo "${model.name}" excluído.`,
+            changes: {
+                name: model.name,
+                description: model.description,
+                folderPath: model.folderPath
+            }
+        });
 
         await model.destroy();
 
