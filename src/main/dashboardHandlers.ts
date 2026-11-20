@@ -29,31 +29,40 @@ export function registerDashboardHandlers(): void {
 
         const rankings = await Model.sequelize!.query(
             `
-            SELECT
-                m.id AS modelId,
-                m.name AS modelName,
-                COUNT(DISTINCT sm.setId) AS totalSets,
-                COUNT(DISTINCT mm.mediaId) AS totalMedia,
-                COALESCE(SUM(mm.fileSize), 0) AS totalSize
-            FROM models m
+    SELECT
+        m.id AS modelId,
+        m.name AS modelName,
 
-            LEFT JOIN set_models sm
-                ON sm.modelId = m.id
+        (
+            SELECT COUNT(DISTINCT sm.setId)
+            FROM set_models sm
+            WHERE sm.modelId = m.id
+        ) AS totalSets,
 
-            LEFT JOIN (
+        (
+            SELECT COUNT(DISTINCT ml.mediaId)
+            FROM set_models sm
+            INNER JOIN media_locations ml
+                ON ml.setId = sm.setId
+            WHERE sm.modelId = m.id
+        ) AS totalMedia,
+
+        (
+            SELECT COALESCE(SUM(media_sizes.fileSize), 0)
+            FROM (
                 SELECT
-                    sm2.modelId,
                     ml.mediaId,
                     MAX(ml.fileSize) AS fileSize
-                FROM set_models sm2
+                FROM set_models sm
                 INNER JOIN media_locations ml
-                    ON ml.setId = sm2.setId
-                GROUP BY sm2.modelId, ml.mediaId
-            ) mm
-                ON mm.modelId = m.id
+                    ON ml.setId = sm.setId
+                WHERE sm.modelId = m.id
+                GROUP BY ml.mediaId
+            ) media_sizes
+        ) AS totalSize
 
-            GROUP BY m.id, m.name
-            `,
+    FROM models m
+    `,
             {
                 type: QueryTypes.SELECT
             }
