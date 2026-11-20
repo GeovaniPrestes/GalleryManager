@@ -4,6 +4,7 @@ import { generateThumbnail, generateThumbnailFromFolder } from "./services/thumb
 import { allowPreviewPath } from "./services/previewAccess";
 import { indexSetMedia } from "./services/Media/mediaIndexer";
 import { registerAuditLog } from "./services/auditLogger";
+import { resolve } from "node:path";
 import GallerySet from "../database/models/GallerySet";
 import Model from "../database/models/Model";
 import SetModel from "../database/models/SetModel";
@@ -428,6 +429,24 @@ export function registerSetHandlers(): void {
             gallerySet.folderPath
         );
 
+        const existingMinisets = await Miniset.findAll({
+            where: { setId }
+        });
+
+        const scannedPaths = new Set(
+            scannedFolders.map(folder =>
+                resolve(folder.folderPath).toLowerCase()
+            )
+        );
+
+        const removedMinisets = existingMinisets
+            .filter(miniset =>
+                !scannedPaths.has(resolve(miniset.folderPath).toLowerCase())
+            )
+            .sort((a, b) =>
+                b.folderPath.length - a.folderPath.length
+            );
+
         const transaction = await Miniset.sequelize!.transaction();
 
         try {
@@ -510,6 +529,16 @@ export function registerSetHandlers(): void {
                 minisetIds.set(folder.folderPath, miniset.id);
             }
 
+            for (const miniset of removedMinisets) {
+                await miniset.destroy({ transaction });
+
+                console.log(
+                    "Miniset removido:",
+                    miniset.name,
+                    miniset.folderPath
+                );
+            }
+
             await transaction.commit();
 
             for (const miniset of createdMinisets) {
@@ -534,6 +563,21 @@ export function registerSetHandlers(): void {
                     action: "update",
                     description: `Miniset "${item.miniset.name}" atualizado no Set "${gallerySet.name}".`,
                     changes: item.changes
+                });
+            }
+
+            for (const miniset of removedMinisets) {
+                await registerAuditLog({
+                    entity: "Miniset",
+                    entityId: miniset.id,
+                    action: "delete",
+                    description: `Miniset "${miniset.name}" removido do Set "${gallerySet.name}" durante a sincronização.`,
+                    changes: {
+                        name: miniset.name,
+                        folderPath: miniset.folderPath,
+                        parentId: miniset.parentId,
+                        setId: miniset.setId
+                    }
                 });
             }
 
