@@ -464,6 +464,19 @@ function Sets({ onOpenSet }: SetsProps) {
 
                 <div className="page-actions">
                     <button
+                        className="secondary-button"
+                        onClick={async () => {
+                            try {
+                                await window.electronAPI.openErrorLogsFolder();
+                            } catch (error) {
+                                console.error("Erro ao abrir logs:", error);
+                                alert("Não foi possível abrir a pasta de logs.");
+                            }
+                        }}
+                    >
+                        <span>📁</span> Abrir logs de erros
+                    </button>
+                    <button
                         className="btn-secondary"
                         onClick={() => {
                             setShowAutoIndexForm(true);
@@ -744,7 +757,7 @@ function Sets({ onOpenSet }: SetsProps) {
                         <div className="modal-footer">
                             <button
                                 className="secondary-button"
-                                onClick={() => setShowAutoForm(false)}
+                                onClick={() => setShowForm(false)}
                                 disabled={saving}
                             >
                                 Fechar
@@ -752,16 +765,14 @@ function Sets({ onOpenSet }: SetsProps) {
 
                             <button
                                 className="primary-button"
-                                onClick={handleCreateAutoSets}
-                                disabled={
-                                    saving ||
-                                    selectedAutoFolders.length === 0 ||
-                                    scannedSetFolders.length === 0
-                                }
+                                onClick={handleCreateSet}
+                                disabled={saving}
                             >
                                 {saving
-                                    ? "Cadastrando..."
-                                    : `Cadastrar ${selectedAutoFolders.length} Set(s)`}
+                                    ? "Salvando..."
+                                    : editingSet
+                                        ? "Salvar alterações"
+                                        : "Cadastrar Set"}
                             </button>
                         </div>
                     </div>

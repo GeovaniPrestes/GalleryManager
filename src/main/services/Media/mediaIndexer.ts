@@ -4,7 +4,7 @@ import GallerySet from "../../../database/models/GallerySet";
 import Miniset from "../../../database/models/Miniset";
 import { registerAuditLog } from "../auditLogger";
 import { generateThumbnail, generateVideoThumbnail } from "../thumbnailGenerator";
-
+import { registerErrorLog } from "../errorLogger";
 import { scanMediaFolder, MediaIndexCheckResult } from "./mediaScanner";
 import { calculateFileHash } from "./mediaHash";
 
@@ -392,6 +392,17 @@ export async function indexSetMedia(
                 `Erro ao indexar ${file.filePath}:`,
                 error
             );
+
+            await registerErrorLog({
+                operation: "Indexação de mídia",
+                message: error instanceof Error
+                    ? error.message
+                    : String(error),
+                entity: "GallerySet",
+                entityId: setId,
+                filePath: file.filePath,
+                details: error
+            });
 
             result.errors++;
         }

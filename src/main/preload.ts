@@ -85,4 +85,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
     checkMediaIndex: (setIds: number[]) =>
         ipcRenderer.invoke("sets:check-media-index", setIds),
+
+    openErrorLogsFolder: () =>
+        ipcRenderer.invoke("logs:open-folder"),
 });

@@ -31,7 +31,9 @@ export async function generateThumbnail(
         `${fileHash}.webp`
     );
 
-    await sharp(originalPath)
+    await sharp(originalPath, {
+        failOn: "none"
+    })
         .rotate()
         .resize(400, 400, {
             fit: "inside",

@@ -1,11 +1,13 @@
-import { dialog, ipcMain } from "electron";
+import { app, dialog, ipcMain, shell } from "electron";
 import { scanMinisetFolders } from "./services/minisetScanner";
 import { generateThumbnail, generateThumbnailFromFolder } from "./services/thumbnailGenerator";
 import { allowPreviewPath } from "./services/previewAccess";
 import { indexSetMedia, checkSetMediaIndex } from "./services/Media/mediaIndexer";
 import { registerAuditLog } from "./services/auditLogger";
-import { resolve } from "node:path";
+import { mkdir } from "node:fs/promises";
+import { resolve, join } from "node:path";
 import { scanSetFolders } from "./services/setFolderScanner";
+import { registerErrorLog } from "./services/errorLogger";
 import GallerySet from "../database/models/GallerySet";
 import Model from "../database/models/Model";
 import SetModel from "../database/models/SetModel";
@@ -64,8 +66,22 @@ export function registerSetHandlers(): void {
                 throw new Error("ID de Set inválido.");
             }
 
-            const result = await checkSetMediaIndex(setId);
-            results.push(result);
+            try {
+                const result = await checkSetMediaIndex(setId);
+                results.push(result);
+            } catch (error) {
+                await registerErrorLog({
+                    operation: "Verificação de indexação do Set",
+                    message: error instanceof Error
+                        ? error.message
+                        : String(error),
+                    entity: "GallerySet",
+                    entityId: setId,
+                    details: error
+                });
+
+                throw error;
+            }
         }
 
         return results;
@@ -110,6 +126,17 @@ export function registerSetHandlers(): void {
         } catch (error) {
             await gallerySet.update({
                 mediaIndexStatus: "error"
+            });
+
+            await registerErrorLog({
+                operation: "Indexação completa do Set",
+                message: error instanceof Error
+                    ? error.message
+                    : String(error),
+                entity: "GallerySet",
+                entityId: setId,
+                filePath: gallerySet.folderPath,
+                details: error
             });
 
             throw error;
@@ -735,6 +762,20 @@ export function registerSetHandlers(): void {
             await transaction.rollback();
             throw error;
         }
+    });
+
+    ipcMain.handle("logs:open-folder", async () => {
+        const logsDirectory = join(app.getPath("userData"), "logs");
+
+        await mkdir(logsDirectory, { recursive: true });
+
+        const error = await shell.openPath(logsDirectory);
+
+        if (error) {
+            throw new Error(`Não foi possível abrir a pasta de logs: ${error}`);
+        }
+
+        return true;
     });
 
     ipcMain.handle(

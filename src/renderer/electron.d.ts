@@ -220,6 +220,8 @@ interface ElectronAPI {
         status: "pending" | "error" | "changed" | "indexed";
         needsIndexing: boolean;
     }>>;
+
+    openErrorLogsFolder: () => Promise<boolean>;
 }
 
 declare global {

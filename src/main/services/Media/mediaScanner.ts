@@ -35,6 +35,20 @@ const videoExtensions = new Set([
 export async function scanMediaFolder(
     rootPath: string
 ): Promise<ScannedMedia[]> {
+    try {
+        const rootStats = await stat(rootPath);
+
+        if (!rootStats.isDirectory()) {
+            throw new Error(`O caminho cadastrado não é uma pasta: ${rootPath}`);
+        }
+    } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+            throw new Error(`A pasta do Set não foi encontrada: ${rootPath}`);
+        }
+
+        throw error;
+    }
+
     const mediaFiles: ScannedMedia[] = [];
 
     async function scanDirectory(directoryPath: string): Promise<void> {
