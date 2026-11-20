@@ -21,6 +21,60 @@ export function registerSetHandlers(unavailableSetIds: number[]): void {
         return unavailableSetIds;
     });
 
+
+    ipcMain.handle("sets:list-media", async (_event, id) => {
+        const setId = Number(id);
+
+        if (!Number.isInteger(setId) || setId <= 0) {
+            throw new Error("ID do Set inválido.");
+        }
+
+        const gallerySet = await GallerySet.findByPk(setId);
+
+        if (!gallerySet) {
+            throw new Error("Set não encontrado.");
+        }
+
+        const media = await Media.findAll({
+            include: [
+                {
+                    model: MediaLocation,
+                    as: "locations",
+                    required: true,
+                    where: {
+                        setId
+                    },
+                    include: [
+                        {
+                            model: Miniset,
+                            as: "miniset",
+                            attributes: [
+                                "id",
+                                "name",
+                                "parentId",
+                                "folderPath"
+                            ],
+                            required: false
+                        }
+                    ]
+                }
+            ],
+            order: [["id", "ASC"]]
+        });
+
+        for (const item of media) {
+            for (const location of item.locations ?? []) {
+                allowPreviewPath(location.filePath);
+
+                if (item.thumbnailPath) {
+                    allowPreviewPath(item.thumbnailPath);
+                }
+            }
+        }
+
+        return media.map(item => item.toJSON());
+    });
+
     ipcMain.handle("sets:scan-model-folders", async (_event, modelId) => {
         const id = Number(modelId);
 

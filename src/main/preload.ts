@@ -37,6 +37,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
     listSets: () => ipcRenderer.invoke("sets:list"),
 
+    listSetMedia: (setId: number) =>
+        ipcRenderer.invoke("sets:list-media", setId),
+
     selectSetFolder: (initialPath?: string) =>
         ipcRenderer.invoke("sets:select-folder", initialPath),
 

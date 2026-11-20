@@ -145,7 +145,7 @@ export async function indexSetMedia(
 
     for (const miniset of minisets) {
         minisetPaths.set(
-            miniset.folderPath.toLowerCase(),
+            normalizePath(miniset.folderPath),
             miniset.id
         );
     }

@@ -1042,7 +1042,29 @@ function Sets({
                             >
                                 {scanning ? "Verificando..." : "Verificar Sets"}
                             </button>
+                            {indexingAll && (
+                                <div className="auto-index-progress">
+                                    <h3>Indexando mídias...</h3>
 
+                                    <p>
+                                        Set {indexingProgress.current} de {indexingProgress.total}
+                                    </p>
+
+                                    <strong>{indexingProgress.currentSetName}</strong>
+
+                                    <div className="progress-bar">
+                                        <div
+                                            className="progress-bar-fill"
+                                            style={{
+                                                width: `${indexingProgress.total > 0
+                                                    ? (indexingProgress.current / indexingProgress.total) * 100
+                                                    : 0
+                                                    }%`
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            )}
                             {scannedIndexSets.length > 0 && (
                                 <div className="auto-index-list">
                                     <h3>Sets encontrados ({scannedIndexSets.length})</h3>
@@ -1085,31 +1107,6 @@ function Sets({
                                     ))}
                                 </div>
                             )}
-
-                            {indexingAll && (
-                                <div className="auto-index-progress">
-                                    <h3>Indexando mídias...</h3>
-
-                                    <p>
-                                        Set {indexingProgress.current} de {indexingProgress.total}
-                                    </p>
-
-                                    <strong>{indexingProgress.currentSetName}</strong>
-
-                                    <div className="progress-bar">
-                                        <div
-                                            className="progress-bar-fill"
-                                            style={{
-                                                width: `${indexingProgress.total > 0
-                                                    ? (indexingProgress.current / indexingProgress.total) * 100
-                                                    : 0
-                                                    }%`
-                                            }}
-                                        />
-                                    </div>
-                                </div>
-                            )}
-
                             {autoIndexResults.length > 0 && (
                                 <div className="auto-index-results">
                                     <h3>Resultados da indexação</h3>

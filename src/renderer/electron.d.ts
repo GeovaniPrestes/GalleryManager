@@ -35,6 +35,29 @@ interface MinisetRecord {
     updatedAt: Date;
 }
 
+interface SetMediaRecord {
+    id: number;
+    fileHash: string | null;
+    mediaType: "image" | "video";
+    thumbnailPath: string | null;
+    locations: {
+        id: number;
+        mediaId: number;
+        filePath: string;
+        fileName: string;
+        extension: string;
+        fileSize: number;
+        setId: number | null;
+        minisetId: number | null;
+        miniset: {
+            id: number;
+            name: string;
+            parentId: number | null;
+            folderPath: string;
+        } | null;
+    }[];
+}
+
 interface ElectronAPI {
     createModel(data: {
         name: string;
@@ -76,7 +99,9 @@ interface ElectronAPI {
 
     listSets(): Promise<SetRecord[]>;
 
-    selectSetFolder: (initialPath?: string) => Promise<string | null>;
+    listSetMedia(setId: number): Promise<SetMediaRecord[]>;
+
+    selectSetFolder(initialPath?: string): Promise<string | null>;
 
     scanMinisets(setId: number): Promise<{
         success: boolean;
@@ -232,4 +257,9 @@ declare global {
     }
 }
 
-export { type SetRecord, type ModelRecord };
+export {
+    type SetRecord,
+    type ModelRecord,
+    type MinisetRecord,
+    type SetMediaRecord
+};
