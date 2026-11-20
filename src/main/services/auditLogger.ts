@@ -13,13 +13,20 @@ interface AuditLogData {
 export async function registerAuditLog(
     data: AuditLogData
 ): Promise<void> {
-    await AuditLog.create({
-        entity: data.entity,
-        entityId: data.entityId ?? null,
-        action: data.action,
-        description: data.description,
-        changes: data.changes
-            ? JSON.stringify(data.changes)
-            : null
-    });
+    try {
+        await AuditLog.create({
+            entity: data.entity,
+            entityId: data.entityId ?? null,
+            action: data.action,
+            description: data.description,
+            changes: data.changes
+                ? JSON.stringify(data.changes)
+                : null
+        });
+    } catch (error) {
+        console.error(
+            "Erro ao registrar auditoria:",
+            error
+        );
+    }
 }

@@ -14,6 +14,7 @@ import Media from "../database/models/Media";
 import MediaLocation from "../database/models/MediaLocation";
 import { registerMediaHandlers } from "./mediaHandlers";
 import AuditLog from "../database/models/AuditLog";
+import { registerAuditHandlers } from "./auditHandlers";
 
 protocol.registerSchemesAsPrivileged([
     {
@@ -203,6 +204,7 @@ app.whenReady().then(async () => {
         registerModelHandlers();
         registerSetHandlers();
         registerMediaHandlers();
+        registerAuditHandlers();
 
         console.log("Banco SQLite conectado com sucesso!");
     } catch (error) {

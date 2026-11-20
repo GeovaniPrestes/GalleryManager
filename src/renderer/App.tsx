@@ -7,6 +7,7 @@ import Models from "./pages/Models";
 import Sets from "./pages/Sets";
 import Minisets from "./pages/Miniset";
 import Media from "./pages/Media";
+import Audit from "./pages/Audit";
 
 import type { SetRecord } from "./electron";
 
@@ -40,6 +41,10 @@ function App() {
 
             case "media":
                 return <Media />;
+
+            case "audit":
+                return <Audit />;
+
             default:
                 return <Dashboard />;
         }

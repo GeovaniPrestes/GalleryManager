@@ -10,6 +10,7 @@ function Sidebar({ activePage, onNavigate }: SidebarProps) {
         { id: "sets", label: "Sets" },
         { id: "minisets", label: "Minisets" },
         { id: "media", label: "Mídias" },
+        { id: "audit", label: "Histórico de atividades" },
         { id: "tags", label: "Tags" }
     ];
 

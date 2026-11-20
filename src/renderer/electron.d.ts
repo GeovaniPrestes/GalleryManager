@@ -142,6 +142,22 @@ interface ElectronAPI {
             }[];
         }[];
     }>;
+
+    listAuditLogs: (data: {
+        limit: number;
+        offset: number;
+    }) => Promise<{
+        total: number;
+        logs: Array<{
+            id: number;
+            entity: string;
+            entityId: number | null;
+            action: "create" | "update" | "delete";
+            description: string;
+            changes: string | null;
+            createdAt: Date;
+        }>;
+    }>;
 }
 
 declare global {

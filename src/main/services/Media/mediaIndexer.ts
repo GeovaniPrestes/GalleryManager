@@ -2,6 +2,7 @@ import Media from "../../../database/models/Media";
 import MediaLocation from "../../../database/models/MediaLocation";
 import GallerySet from "../../../database/models/GallerySet";
 import Miniset from "../../../database/models/Miniset";
+import { registerAuditLog } from "../auditLogger";
 import { generateThumbnail } from "../thumbnailGenerator";
 
 import { scanMediaFolder } from "./mediaScanner";
@@ -134,6 +135,19 @@ export async function indexSetMedia(
                     await media.update({
                         thumbnailPath
                     });
+
+                    await registerAuditLog({
+                        entity: "Media",
+                        entityId: media.id,
+                        action: "update",
+                        description: "Thumbnail da mídia gerada durante a indexação.",
+                        changes: {
+                            thumbnailPath: {
+                                old: null,
+                                new: thumbnailPath
+                            }
+                        }
+                    });
                 }
             } else {
                 const thumbnailPath = file.mediaType === "image"
@@ -146,6 +160,18 @@ export async function indexSetMedia(
                     thumbnailPath
                 });
 
+                await registerAuditLog({
+                    entity: "Media",
+                    entityId: media.id,
+                    action: "create",
+                    description: `Mídia ${file.mediaType} cadastrada.`,
+                    changes: {
+                        fileHash,
+                        mediaType: file.mediaType,
+                        thumbnailPath
+                    }
+                });
+
                 result.newMedia++;
             }
 
@@ -156,7 +182,17 @@ export async function indexSetMedia(
             if (existingLocation) {
                 const previousMediaId = existingLocation.mediaId;
 
-                await existingLocation.update({
+                const previousValues = {
+                    mediaId: existingLocation.mediaId,
+                    setId: existingLocation.setId,
+                    minisetId: existingLocation.minisetId,
+                    filePath: existingLocation.filePath,
+                    fileName: existingLocation.fileName,
+                    extension: existingLocation.extension,
+                    fileSize: existingLocation.fileSize
+                };
+
+                const newValues = {
                     mediaId: media.id,
                     setId,
                     minisetId: findMinisetId(file.filePath),
@@ -164,7 +200,30 @@ export async function indexSetMedia(
                     fileName: file.fileName,
                     extension: file.extension,
                     fileSize: file.fileSize
-                });
+                };
+
+                const changes: Record<string, { old: any; new: any }> = {};
+
+                for (const key of Object.keys(newValues) as Array<keyof typeof newValues>) {
+                    if (previousValues[key] !== newValues[key]) {
+                        changes[key] = {
+                            old: previousValues[key],
+                            new: newValues[key]
+                        };
+                    }
+                }
+
+                await existingLocation.update(newValues);
+
+                if (Object.keys(changes).length > 0) {
+                    await registerAuditLog({
+                        entity: "MediaLocation",
+                        entityId: existingLocation.id,
+                        action: "update",
+                        description: `Localização da mídia "${file.fileName}" atualizada.`,
+                        changes
+                    });
+                }
 
                 locationsByPath.set(normalizedFilePath, existingLocation);
 
@@ -176,11 +235,23 @@ export async function indexSetMedia(
                     });
 
                     if (remainingLocations === 0) {
-                        await Media.destroy({
-                            where: {
-                                id: previousMediaId
-                            }
-                        });
+                        const removedMedia = await Media.findByPk(previousMediaId);
+
+                        if (removedMedia) {
+                            await registerAuditLog({
+                                entity: "Media",
+                                entityId: removedMedia.id,
+                                action: "delete",
+                                description: "Mídia removida por não possuir mais localizações.",
+                                changes: {
+                                    fileHash: removedMedia.fileHash,
+                                    mediaType: removedMedia.mediaType,
+                                    thumbnailPath: removedMedia.thumbnailPath
+                                }
+                            });
+
+                            await removedMedia.destroy();
+                        }
                     }
                 }
             } else {
@@ -192,6 +263,22 @@ export async function indexSetMedia(
                     fileName: file.fileName,
                     extension: file.extension,
                     fileSize: file.fileSize
+                });
+
+                await registerAuditLog({
+                    entity: "MediaLocation",
+                    entityId: newLocation.id,
+                    action: "create",
+                    description: `Localização da mídia "${file.fileName}" cadastrada no Set "${gallerySet.name}".`,
+                    changes: {
+                        mediaId: media.id,
+                        setId,
+                        minisetId: findMinisetId(file.filePath),
+                        filePath: file.filePath,
+                        fileName: file.fileName,
+                        extension: file.extension,
+                        fileSize: file.fileSize
+                    }
                 });
 
                 locationsByPath.set(normalizedFilePath, newLocation);
@@ -212,6 +299,22 @@ export async function indexSetMedia(
     if (result.errors === 0) {
         for (const location of existingLocations) {
             if (!scannedPaths.has(normalizePath(location.filePath))) {
+                await registerAuditLog({
+                    entity: "MediaLocation",
+                    entityId: location.id,
+                    action: "delete",
+                    description: `Localização da mídia "${location.fileName}" removida do Set "${gallerySet.name}" durante a reindexação.`,
+                    changes: {
+                        mediaId: location.mediaId,
+                        setId: location.setId,
+                        minisetId: location.minisetId,
+                        filePath: location.filePath,
+                        fileName: location.fileName,
+                        extension: location.extension,
+                        fileSize: location.fileSize
+                    }
+                });
+
                 await location.destroy();
 
                 const remainingLocations = await MediaLocation.count({
@@ -221,11 +324,23 @@ export async function indexSetMedia(
                 });
 
                 if (remainingLocations === 0) {
-                    await Media.destroy({
-                        where: {
-                            id: location.mediaId
-                        }
-                    });
+                    const removedMedia = await Media.findByPk(location.mediaId);
+
+                    if (removedMedia) {
+                        await registerAuditLog({
+                            entity: "Media",
+                            entityId: removedMedia.id,
+                            action: "delete",
+                            description: `Mídia removida por não possuir mais localizações.`,
+                            changes: {
+                                fileHash: removedMedia.fileHash,
+                                mediaType: removedMedia.mediaType,
+                                thumbnailPath: removedMedia.thumbnailPath
+                            }
+                        });
+
+                        await removedMedia.destroy();
+                    }
                 }
             }
         }
