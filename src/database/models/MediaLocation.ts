@@ -1,4 +1,3 @@
-
 import {
     DataTypes,
     Model as SequelizeModel,

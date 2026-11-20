@@ -9,6 +9,8 @@ import GallerySet from "../database/models/GallerySet";
 import Model from "../database/models/Model";
 import SetModel from "../database/models/SetModel";
 import Miniset from "../database/models/Miniset";
+import Media from "../database/models/Media";
+import MediaLocation from "../database/models/MediaLocation";
 
 export function registerSetHandlers(): void {
 
@@ -327,6 +329,22 @@ export function registerSetHandlers(): void {
 
         const modelIds = relations.map(relation => relation.modelId);
 
+        const locations = await MediaLocation.findAll({
+            where: { setId },
+            attributes: ["mediaId"]
+        });
+
+        const mediaIds = [
+            ...new Set(locations.map(location => location.mediaId))
+        ];
+
+        const deletedMediaLogs: Array<{
+            id: number;
+            mediaType: string;
+            fileHash: string | null;
+            thumbnailPath: string | null;
+        }> = [];
+
         const transaction = await GallerySet.sequelize!.transaction();
 
         try {
@@ -337,7 +355,45 @@ export function registerSetHandlers(): void {
 
             await gallerySet.destroy({ transaction });
 
+            for (const mediaId of mediaIds) {
+                const remainingLocations = await MediaLocation.count({
+                    where: { mediaId },
+                    transaction
+                });
+
+                if (remainingLocations === 0) {
+                    const media = await Media.findByPk(mediaId, {
+                        transaction
+                    });
+
+                    if (media) {
+                        deletedMediaLogs.push({
+                            id: media.id,
+                            mediaType: media.mediaType,
+                            fileHash: media.fileHash,
+                            thumbnailPath: media.thumbnailPath
+                        });
+
+                        await media.destroy({ transaction });
+                    }
+                }
+            }
+
             await transaction.commit();
+
+            for (const mediaLog of deletedMediaLogs) {
+                await registerAuditLog({
+                    entity: "Media",
+                    entityId: mediaLog.id,
+                    action: "delete",
+                    description: `Mídia ${mediaLog.mediaType} removida após exclusão do Set "${setData.name}".`,
+                    changes: {
+                        fileHash: mediaLog.fileHash,
+                        mediaType: mediaLog.mediaType,
+                        thumbnailPath: mediaLog.thumbnailPath
+                    }
+                });
+            }
 
             await registerAuditLog({
                 entity: "GallerySet",

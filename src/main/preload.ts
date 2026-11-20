@@ -77,4 +77,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
         action?: "create" | "update" | "delete";
         entity?: string;
     }) => ipcRenderer.invoke("audit:list", data),
+
+    getDashboardData: () => ipcRenderer.invoke("dashboard:get-data"),
 });

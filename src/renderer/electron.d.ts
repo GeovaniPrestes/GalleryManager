@@ -160,6 +160,24 @@ interface ElectronAPI {
             createdAt: Date;
         }>;
     }>;
+
+    getDashboardData: () => Promise<{
+        statistics: {
+            models: number;
+            sets: number;
+            minisets: number;
+            media: number;
+        };
+        recentActivity: Array<{
+            id: number;
+            entity: string;
+            entityId: number | null;
+            action: "create" | "update" | "delete";
+            description: string;
+            changes: string | null;
+            createdAt: Date;
+        }>;
+    }>;
 }
 
 declare global {
