@@ -177,6 +177,29 @@ interface ElectronAPI {
             changes: string | null;
             createdAt: Date;
         }>;
+        rankings: {
+            topModelsBySets: Array<{
+                modelId: number;
+                modelName: string;
+                totalSets: number;
+                totalMedia: number;
+                totalSize: number;
+            }>;
+            topModelsBySize: Array<{
+                modelId: number;
+                modelName: string;
+                totalSets: number;
+                totalMedia: number;
+                totalSize: number;
+            }>;
+            topModelsByMedia: Array<{
+                modelId: number;
+                modelName: string;
+                totalSets: number;
+                totalMedia: number;
+                totalSize: number;
+            }>;
+        };
     }>;
 }
 

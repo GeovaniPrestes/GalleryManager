@@ -104,3 +104,159 @@ input {
 .audit-pagination span {
     color: #9ca3af;
 }
+
+.activity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px;
+    border: 1px solid #303640;
+    border-radius: 8px;
+    background-color: #1b1f27;
+}
+
+.activity-item>div {
+    flex: 1;
+    min-width: 0;
+}
+
+.activity-item p {
+    color: #e5e7eb;
+    font-size: 14px;
+    margin-bottom: 6px;
+}
+
+.activity-item span:not(.activity-icon) {
+    color: #9ca3af;
+    font-size: 12px;
+}
+
+.activity-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    margin-right: 6px;
+    border-radius: 50%;
+    font-size: 15px;
+    font-weight: bold;
+}
+
+.audit-create .activity-icon {
+    background-color: rgba(34, 197, 94, .15);
+}
+
+.audit-update .activity-icon {
+    background-color: rgba(59, 130, 246, .15);
+}
+
+.audit-delete .activity-icon {
+    background-color: rgba(239, 68, 68, .15);
+}
+
+
+.rankings-section {
+    margin-top: 32px;
+}
+
+.rankings-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.ranking-card {
+    min-width: 0;
+    padding: 20px;
+    border: 1px solid #303640;
+    border-radius: 10px;
+    background-color: #1b1f27;
+}
+
+.ranking-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 22px;
+}
+
+.ranking-heading h3 {
+    color: #e5e7eb;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.ranking-icon {
+    font-size: 20px;
+}
+
+.ranking-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.ranking-item {
+    min-width: 0;
+}
+
+.ranking-item-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 9px;
+}
+
+.ranking-position {
+    flex-shrink: 0;
+    color: #9ca3af;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.ranking-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    color: #e5e7eb;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ranking-value {
+    flex-shrink: 0;
+    color: #9ca3af;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.ranking-progress {
+    width: 100%;
+    height: 6px;
+    overflow: hidden;
+    border-radius: 10px;
+    background-color: #303640;
+}
+
+.ranking-progress-fill {
+    height: 100%;
+    border-radius: inherit;
+    background-color: #60a5fa;
+    transition: width 0.3s ease;
+}
+
+@media (max-width: 1200px) {
+    .rankings-grid {
+        grid-template-columns: 1fr;
+    }
+}
