@@ -74,7 +74,7 @@ interface ElectronAPI {
 
     listSets(): Promise<SetRecord[]>;
 
-    selectSetFolder(): Promise<string | null>;
+    selectSetFolder: (initialPath?: string) => Promise<string | null>;
 
     scanMinisets(setId: number): Promise<{
         success: boolean;

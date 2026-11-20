@@ -29,10 +29,11 @@ export function registerSetHandlers(): void {
         };
     });
 
-    ipcMain.handle("sets:select-folder", async () => {
+    ipcMain.handle("sets:select-folder", async (_event, initialPath?: string) => {
         const result = await dialog.showOpenDialog({
             title: "Selecionar pasta do Set",
-            properties: ["openDirectory"]
+            properties: ["openDirectory"],
+            ...(initialPath ? { defaultPath: initialPath } : {})
         });
 
         if (result.canceled || result.filePaths.length === 0) {

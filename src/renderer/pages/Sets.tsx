@@ -353,11 +353,31 @@ function Sets({ onOpenSet }: SetsProps) {
                             <button
                                 className="secondary-button"
                                 onClick={async () => {
+                                    const selectedModel = models.find(
+                                        (model) => model.id === selectedModels[0]
+                                    );
+
                                     const selectedFolder =
-                                        await window.electronAPI.selectSetFolder();
+                                        await window.electronAPI.selectSetFolder(
+                                            selectedModel?.folderPath ?? undefined
+                                        );
 
                                     if (selectedFolder) {
                                         setFolderPath(selectedFolder);
+
+                                        if (!name.trim()) {
+                                            const folderName = selectedFolder
+                                                .split(/[\\/]/)
+                                                .filter(Boolean)
+                                                .pop() || "";
+
+                                            const sanitizedName = folderName
+                                                .replace(/[^\p{L}\p{N}\s]/gu, " ")
+                                                .replace(/\s+/g, " ")
+                                                .trim();
+
+                                            setName(sanitizedName);
+                                        }
                                     }
                                 }}
                             >
