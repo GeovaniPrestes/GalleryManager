@@ -13,6 +13,13 @@ function Media() {
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const [dragging, setDragging] = useState(false);
     const [dragOrigin, setDragOrigin] = useState({ x: 0, y: 0 });
+    const [mediaFilter, setMediaFilter] = useState("all");
+    const [searchTerm, setSearchTerm] = useState("");
+
+    const filteredMedia = media.filter(item => {
+        if (mediaFilter === "all") return true;
+        return item.mediaType === mediaFilter;
+    });
 
     async function loadMedia() {
         try {
@@ -61,10 +68,10 @@ function Media() {
 
         const nextIndex = selectedIndex + direction;
 
-        if (nextIndex < 0 || nextIndex >= media.length) return;
+        if (nextIndex < 0 || nextIndex >= filteredMedia.length) return;
 
         setSelectedIndex(nextIndex);
-        setSelectedMedia(media[nextIndex]);
+        setSelectedMedia(filteredMedia[nextIndex]);
         setZoom(1);
         setPosition({ x: 0, y: 0 });
     }
@@ -105,6 +112,28 @@ function Media() {
 
     return (
         <div className="media-page">
+            <div className="media-filters">
+                <button
+                    className={mediaFilter === "all" ? "active" : ""}
+                    onClick={() => setMediaFilter("all")}
+                >
+                    Todas
+                </button>
+
+                <button
+                    className={mediaFilter === "image" ? "active" : ""}
+                    onClick={() => setMediaFilter("image")}
+                >
+                    Imagens
+                </button>
+
+                <button
+                    className={mediaFilter === "video" ? "active" : ""}
+                    onClick={() => setMediaFilter("video")}
+                >
+                    Vídeos
+                </button>
+            </div>
             <div className="page-heading">
                 <div>
                     <h1>Mídias</h1>
@@ -122,12 +151,12 @@ function Media() {
                     <p>{total} mídias encontradas.</p>
 
                     <div className="media-grid">
-                        {media.map((item) => (
+                        {filteredMedia.map((item) => (
                             <div
                                 className="media-card"
                                 key={item.id}
                                 onClick={() => {
-                                    setSelectedIndex(media.findIndex(m => m.id === item.id));
+                                    setSelectedIndex(filteredMedia.findIndex(m => m.id === item.id));
                                     setSelectedMedia(item);
                                     setZoom(1);
                                     setPosition({ x: 0, y: 0 });
@@ -199,7 +228,7 @@ function Media() {
                     </button>
 
                     <div className="media-viewer-counter">
-                        {selectedIndex !== null ? selectedIndex + 1 : 0} de {total}
+                        {selectedIndex !== null ? selectedIndex + 1 : 0} de {filteredMedia.length}
                     </div>
 
                     <button
@@ -208,7 +237,7 @@ function Media() {
                             event.stopPropagation();
                             navigateMedia(1);
                         }}
-                        disabled={selectedIndex === media.length - 1}
+                        disabled={selectedIndex === filteredMedia.length - 1}
                     >
                         ❯
                     </button>
