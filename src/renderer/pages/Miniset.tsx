@@ -3,7 +3,9 @@ import { useEffect, useState } from "react";
 interface MinisetsProps {
     setId: number;
     setName: string;
+    mediaIndexStatus: "pending" | "indexing" | "indexed" | "error";
     onBackToSets: () => void;
+    onSetUpdated: () => Promise<void>;
 }
 
 interface MinisetRecord {
@@ -15,9 +17,16 @@ interface MinisetRecord {
     thumbnailPath: string | null;
     createdAt: Date;
     updatedAt: Date;
+
 }
 
-function Minisets({ setId, setName, onBackToSets }: MinisetsProps) {
+function Minisets({
+    setId,
+    setName,
+    mediaIndexStatus,
+    onSetUpdated,
+    onBackToSets
+}: MinisetsProps) {
     const [minisets, setMinisets] = useState<MinisetRecord[]>([]);
     const [navigationPath, setNavigationPath] = useState<MinisetRecord[]>([]);
 
@@ -46,8 +55,27 @@ function Minisets({ setId, setName, onBackToSets }: MinisetsProps) {
 
     useEffect(() => {
         setNavigationPath([]);
-        loadMinisets(null);
-    }, [setId]);
+
+        async function initializeSet() {
+            try {
+                if (mediaIndexStatus === "pending") {
+                    await window.electronAPI.indexSetMedia(setId);
+                    await onSetUpdated();
+                }
+            } catch (error) {
+                console.error("Erro na indexação automática:", error);
+                alert("Não foi possível indexar as mídias deste Set. Você poderá tentar novamente pela tela de Sets.");
+            } finally {
+                if (mediaIndexStatus === "pending") {
+                    await onSetUpdated();
+                }
+
+                await loadMinisets(null);
+            }
+        }
+
+        initializeSet();
+    }, [setId, mediaIndexStatus]);
 
     function handleBack() {
         if (navigationPath.length === 0) return;

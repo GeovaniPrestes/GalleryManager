@@ -14,6 +14,8 @@ interface GallerySetAttributes {
     description: string | null;
     folderPath: string;
     thumbnailPath: string | null;
+    mediaIndexStatus: "pending" | "indexing" | "indexed" | "error";
+    mediaIndexedAt: Date | null;
     createdAt?: Date;
     updatedAt?: Date;
 }
@@ -21,7 +23,11 @@ interface GallerySetAttributes {
 interface GallerySetCreationAttributes
     extends Optional<
         GallerySetAttributes,
-        "id" | "description" | "thumbnailPath"
+        | "id"
+        | "description"
+        | "thumbnailPath"
+        | "mediaIndexStatus"
+        | "mediaIndexedAt"
     > { }
 
 class GallerySet
@@ -37,6 +43,8 @@ class GallerySet
     declare thumbnailPath: string | null;
     declare readonly createdAt: Date;
     declare readonly updatedAt: Date;
+    declare mediaIndexStatus: "pending" | "indexing" | "indexed" | "error";
+    declare mediaIndexedAt: Date | null;
 }
 
 GallerySet.init(
@@ -62,6 +70,16 @@ GallerySet.init(
         thumbnailPath: {
             type: DataTypes.STRING,
             allowNull: true
+        },
+        mediaIndexStatus: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            defaultValue: "pending"
+        },
+        mediaIndexedAt: {
+            type: DataTypes.DATE,
+            allowNull: true,
+            defaultValue: null
         }
     },
     {

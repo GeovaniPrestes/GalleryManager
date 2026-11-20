@@ -14,6 +14,8 @@ interface SetRecord {
     description: string | null;
     folderPath: string;
     thumbnailPath: string | null;
+    mediaIndexStatus: "pending" | "indexing" | "indexed" | "error";
+    mediaIndexedAt: Date | null;
     createdAt: Date;
     updatedAt: Date;
     models: {

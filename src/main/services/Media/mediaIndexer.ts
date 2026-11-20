@@ -152,11 +152,35 @@ export async function indexSetMedia(
                     ? await generateThumbnail(file.filePath)
                     : await generateVideoThumbnail(file.filePath);
 
-                media = await Media.create({
-                    fileHash,
-                    mediaType: file.mediaType,
-                    thumbnailPath
-                });
+                try {
+                    media = await Media.create({
+                        fileHash,
+                        mediaType: file.mediaType,
+                        thumbnailPath
+                    });
+                } catch (error: any) {
+                    if (error.name !== "SequelizeUniqueConstraintError") {
+                        throw error;
+                    }
+
+                    media = await Media.findOne({
+                        where: {
+                            fileHash
+                        }
+                    });
+
+                    if (!media) {
+                        throw error;
+                    }
+
+                    result.existingMedia++;
+
+                    console.log(
+                        "Mídia já cadastrada por outra operação:",
+                        media.id,
+                        file.filePath
+                    );
+                }
 
                 await registerAuditLog({
                     entity: "Media",

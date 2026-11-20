@@ -186,6 +186,7 @@ function Sets({ onOpenSet }: SetsProps) {
             console.error("Erro ao indexar mídias:", error);
             alert("Não foi possível indexar as mídias deste Set.");
         } finally {
+            await loadSets();
             setIndexingSetId(null);
         }
     }
@@ -385,6 +386,21 @@ function Sets({ onOpenSet }: SetsProps) {
                                 <p>
                                     {gallerySet.description || "Sem descrição"}
                                 </p>
+                                <div className="set-index-info">
+                                    <span className={`set-index-status status-${gallerySet.mediaIndexStatus}`}>
+                                        {gallerySet.mediaIndexStatus === "pending" && "Não indexado"}
+                                        {gallerySet.mediaIndexStatus === "indexing" && "Indexando..."}
+                                        {gallerySet.mediaIndexStatus === "indexed" && "Indexado"}
+                                        {gallerySet.mediaIndexStatus === "error" && "Erro na indexação"}
+                                    </span>
+
+                                    {gallerySet.mediaIndexedAt && (
+                                        <small>
+                                            Última indexação:{" "}
+                                            {new Date(gallerySet.mediaIndexedAt).toLocaleString("pt-BR")}
+                                        </small>
+                                    )}
+                                </div>
                                 <div className="set-models">
                                     <span>Modelos participantes:</span>
 

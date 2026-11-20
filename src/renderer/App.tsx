@@ -15,12 +15,28 @@ function App() {
     const [activePage, setActivePage] = useState("dashboard");
     const [selectedSet, setSelectedSet] = useState<SetRecord | null>(null);
 
+    async function refreshSelectedSet() {
+        if (!selectedSet) return;
+
+        const sets = await window.electronAPI.listSets();
+
+        const updatedSet = sets.find(
+            (gallerySet) => gallerySet.id === selectedSet.id
+        );
+
+        if (updatedSet) {
+            setSelectedSet(updatedSet);
+        }
+    }
+
     function renderPage() {
         if (selectedSet) {
             return (
                 <Minisets
                     setId={selectedSet.id}
                     setName={selectedSet.name}
+                    mediaIndexStatus={selectedSet.mediaIndexStatus}
+                    onSetUpdated={refreshSelectedSet}
                     onBackToSets={() => {
                         setSelectedSet(null);
                         setActivePage("sets");

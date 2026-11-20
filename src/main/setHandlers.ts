@@ -5,7 +5,7 @@ import { allowPreviewPath } from "./services/previewAccess";
 import { indexSetMedia } from "./services/Media/mediaIndexer";
 import { registerAuditLog } from "./services/auditLogger";
 import { resolve } from "node:path";
-import { scanSetFolders } from "./services/setFolderScanner"; 
+import { scanSetFolders } from "./services/setFolderScanner";
 import GallerySet from "../database/models/GallerySet";
 import Model from "../database/models/Model";
 import SetModel from "../database/models/SetModel";
@@ -50,6 +50,7 @@ export function registerSetHandlers(): void {
         }));
     });
 
+
     ipcMain.handle("sets:index-media", async (_event, id) => {
         const setId = Number(id);
 
@@ -57,13 +58,44 @@ export function registerSetHandlers(): void {
             throw new Error("ID do Set inválido.");
         }
 
-        const result = await indexSetMedia(setId);
+        const gallerySet = await GallerySet.findByPk(setId);
 
-        return {
-            success: true,
-            ...result
-        };
+        if (!gallerySet) {
+            throw new Error("Set não encontrado.");
+        }
+
+        await gallerySet.update({
+            mediaIndexStatus: "indexing"
+        });
+
+        try {
+            const result = await indexSetMedia(setId);
+
+            if (result.errors > 0) {
+                await gallerySet.update({
+                    mediaIndexStatus: "error"
+                });
+            } else {
+                await gallerySet.update({
+                    mediaIndexStatus: "indexed",
+                    mediaIndexedAt: new Date()
+                });
+            }
+
+            return {
+                success: true,
+                ...result
+            };
+
+        } catch (error) {
+            await gallerySet.update({
+                mediaIndexStatus: "error"
+            });
+
+            throw error;
+        }
     });
+
 
     ipcMain.handle("sets:select-folder", async (_event, initialPath?: string) => {
         const result = await dialog.showOpenDialog({

@@ -115,20 +115,29 @@ export async function generateThumbnailFromFolder(
         ".gif"
     ];
 
-    const image = entries.find((entry) => {
-        return (
-            entry.isFile() &&
-            supportedExtensions.includes(
-                extname(entry.name).toLowerCase()
-            )
-        );
-    });
+    const images = entries
+        .filter((entry) => {
+            return (
+                entry.isFile() &&
+                supportedExtensions.includes(
+                    extname(entry.name).toLowerCase()
+                )
+            );
+        })
+        .sort((a, b) => a.name.localeCompare(b.name));
 
-    if (!image) {
-        return null;
+    for (const image of images) {
+        const imagePath = join(folderPath, image.name);
+
+        try {
+            return await generateThumbnail(imagePath);
+        } catch (error) {
+            console.error(
+                `Não foi possível gerar thumbnail para ${imagePath}:`,
+                error
+            );
+        }
     }
 
-    const imagePath = join(folderPath, image.name);
-
-    return generateThumbnail(imagePath);
+    return null;
 }
