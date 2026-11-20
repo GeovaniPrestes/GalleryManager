@@ -1,7 +1,5 @@
-import { useState } from "react";
-
+import { useEffect, useState } from "react";
 import MainLayout from "./components/MainLayout";
-
 import Dashboard from "./pages/Dashboard";
 import Models from "./pages/Models";
 import Sets from "./pages/Sets";
@@ -14,6 +12,16 @@ import type { SetRecord } from "./electron";
 function App() {
     const [activePage, setActivePage] = useState("dashboard");
     const [selectedSet, setSelectedSet] = useState<SetRecord | null>(null);
+    const [editingEnabled, setEditingEnabled] = useState(
+        () => localStorage.getItem("galerymanager-editing-enabled") === "true"
+    );
+
+    useEffect(() => {
+        localStorage.setItem(
+            "galerymanager-editing-enabled",
+            String(editingEnabled)
+        );
+    }, [editingEnabled]);
 
     async function refreshSelectedSet() {
         if (!selectedSet) return;
@@ -73,6 +81,8 @@ function App() {
                 setSelectedSet(null);
                 setActivePage(page);
             }}
+            editingEnabled={editingEnabled}
+            onToggleEditing={() => setEditingEnabled(current => !current)}
         >
             {renderPage()}
         </MainLayout>

@@ -1,4 +1,12 @@
-function Header() {
+interface HeaderProps {
+    editingEnabled: boolean;
+    onToggleEditing: () => void;
+}
+
+function Header({
+    editingEnabled,
+    onToggleEditing
+}: HeaderProps) {
     return (
         <header className="app-header">
             <div className="header-search">
@@ -14,6 +22,16 @@ function Header() {
                 <span className="library-status">
                     Biblioteca local
                 </span>
+
+                <button
+                    type="button"
+                    className={`editing-toggle ${editingEnabled ? "active" : ""}`}
+                    onClick={onToggleEditing}
+                    aria-pressed={editingEnabled}
+                >
+                    <span className="toggle-indicator" />
+                    Edição: {editingEnabled ? "Ativada" : "Desativada"}
+                </button>
 
                 <button className="header-button" title="Atualizar biblioteca">
                     ↻

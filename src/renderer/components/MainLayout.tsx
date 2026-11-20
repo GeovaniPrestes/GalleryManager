@@ -5,12 +5,16 @@ interface MainLayoutProps {
     children: React.ReactNode;
     activePage: string;
     onNavigate: (page: string) => void;
+    editingEnabled: boolean;
+    onToggleEditing: () => void;
 }
 
 function MainLayout({
     children,
     activePage,
-    onNavigate
+    onNavigate,
+    editingEnabled,
+    onToggleEditing
 }: MainLayoutProps) {
     return (
         <div className="app-layout">
@@ -20,7 +24,10 @@ function MainLayout({
             />
 
             <div className="main-area">
-                <Header />
+                <Header
+                    editingEnabled={editingEnabled}
+                    onToggleEditing={onToggleEditing}
+                />
 
                 <main className="page-content">
                     {children}

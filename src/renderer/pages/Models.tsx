@@ -9,7 +9,12 @@ interface Model {
     updatedAt: Date;
 }
 
-function Models() {
+interface ModelsProps {
+    editingEnabled: boolean;
+    onSelectModel: (model: Model) => void;
+}
+
+function Models({ editingEnabled, onSelectModel }: ModelsProps) {
     const [models, setModels] = useState<Model[]>([]);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
@@ -83,8 +88,9 @@ function Models() {
 
             setName("");
             setDescription("");
+            setFolderPath("");
+            setSelectedThumbnail(null);
             setShowForm(false);
-
         } catch (error) {
             console.error("Erro ao cadastrar modelo:", error);
             alert("Não foi possível cadastrar o modelo.");
@@ -117,9 +123,10 @@ function Models() {
 
             setName("");
             setDescription("");
+            setFolderPath("");
+            setSelectedThumbnail(null);
             setEditingModel(null);
             setShowForm(false);
-
         } catch (error) {
             console.error("Erro ao atualizar modelo:", error);
             alert("Não foi possível atualizar o modelo.");
@@ -140,7 +147,6 @@ function Models() {
 
             const updatedModels = await window.electronAPI.listModels();
             setModels(updatedModels);
-
         } catch (error) {
             console.error("Erro ao excluir modelo:", error);
             alert("Não foi possível excluir o modelo.");
@@ -155,9 +161,19 @@ function Models() {
         setEditingModel(model);
         setName(model.name);
         setDescription(model.description || "");
+        setFolderPath("");
+        setSelectedThumbnail(model.thumbnailPath);
         setShowForm(true);
     }
 
+    function handleCloseForm() {
+        setShowForm(false);
+        setEditingModel(null);
+        setName("");
+        setDescription("");
+        setFolderPath("");
+        setSelectedThumbnail(null);
+    }
 
     return (
         <div className="models-page">
@@ -167,34 +183,31 @@ function Models() {
                     <p>Gerencie os modelos da sua biblioteca.</p>
                 </div>
 
-                <button
-                    className="primary-button"
-                    onClick={() => setShowForm(true)}
-                >
-                    + Novo modelo
-                </button>
+                {editingEnabled && (
+                    <button
+                        className="primary-button"
+                        onClick={() => setShowForm(true)}
+                    >
+                        + Novo modelo
+                    </button>
+                )}
             </div>
-            {showForm && (
+
+            {showForm && editingEnabled && (
                 <div className="modal-overlay">
                     <div className="modal">
                         <div className="modal-header">
-                            <h2>Novo modelo</h2>
+                            <h2>{editingModel ? "Editar modelo" : "Novo modelo"}</h2>
 
                             <button
                                 className="modal-close"
-                                onClick={() => {
-                                    setShowForm(false);
-                                    setEditingModel(null);
-                                    setName("");
-                                    setDescription("");
-                                }}
+                                onClick={handleCloseForm}
                             >
                                 ×
                             </button>
                         </div>
 
                         <div className="modal-body">
-                            <h2>{editingModel ? "Editar modelo" : "Novo modelo"}</h2>
                             <input
                                 type="text"
                                 placeholder="Digite o nome..."
@@ -208,6 +221,7 @@ function Models() {
                                 value={description}
                                 onChange={(event) => setDescription(event.target.value)}
                             />
+
                             <label>Pasta do modelo</label>
 
                             <div className="folder-selection">
@@ -226,6 +240,7 @@ function Models() {
                                     Selecionar pasta
                                 </button>
                             </div>
+
                             <label>Thumbnail do modelo</label>
 
                             <div className="folder-selection">
@@ -244,6 +259,7 @@ function Models() {
                                     Escolher imagem
                                 </button>
                             </div>
+
                             {selectedThumbnail && (
                                 <div className="model-thumbnail-preview">
                                     <img
@@ -257,12 +273,7 @@ function Models() {
                         <div className="modal-footer">
                             <button
                                 className="secondary-button"
-                                onClick={() => {
-                                    setShowForm(false);
-                                    setEditingModel(null);
-                                    setName("");
-                                    setDescription("");
-                                }}
+                                onClick={handleCloseForm}
                             >
                                 Cancelar
                             </button>
@@ -282,6 +293,7 @@ function Models() {
                     </div>
                 </div>
             )}
+
             <div className="models-toolbar">
                 <input
                     type="text"
@@ -307,7 +319,11 @@ function Models() {
                 <div className="models-grid">
                     {filteredModels.map((model) => (
                         <div className="model-card" key={model.id}>
-                            <div className="model-thumbnail">
+                            <div
+                                className="model-thumbnail"
+                                onClick={() => onSelectModel(model)}
+                                style={{ cursor: "pointer" }}
+                            >
                                 {model.thumbnailPath ? (
                                     <img
                                         src={`media://thumbnail?path=${encodeURIComponent(model.thumbnailPath)}`}
@@ -332,17 +348,29 @@ function Models() {
                                 </p>
 
                                 <button
-                                    className="secondary-button"
-                                    onClick={() => handleEditModel(model)}
+                                    className="primary-button"
+                                    onClick={() => onSelectModel(model)}
                                 >
-                                    Editar
+                                    Ver Sets
                                 </button>
-                                <button
-                                    className="delete-button"
-                                    onClick={() => handleDeleteModel(model)}
-                                >
-                                    Excluir
-                                </button>
+
+                                {editingEnabled && (
+                                    <>
+                                        <button
+                                            className="secondary-button"
+                                            onClick={() => handleEditModel(model)}
+                                        >
+                                            Editar
+                                        </button>
+
+                                        <button
+                                            className="delete-button"
+                                            onClick={() => handleDeleteModel(model)}
+                                        >
+                                            Excluir
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </div>
                     ))}
