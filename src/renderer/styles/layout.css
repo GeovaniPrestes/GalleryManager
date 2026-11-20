@@ -688,6 +688,218 @@
     font-size: 36px;
     cursor: pointer;
 }
+.media-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+    padding: 14px;
+    background: #191c23;
+    border: 1px solid #292e38;
+    border-radius: 12px;
+}
+
+.media-search {
+    flex: 1;
+    min-width: 220px;
+}
+
+.media-search input {
+    width: 100%;
+    height: 42px;
+    padding: 0 14px;
+    color: #e5e7eb;
+    background: #111318;
+    border: 1px solid #343a46;
+    border-radius: 8px;
+    outline: none;
+}
+
+.media-search input:focus {
+    border-color: #64748b;
+}
+
+.media-filters {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.media-filters button,
+.media-filters select,
+.media-clear-filters {
+    height: 42px;
+    padding: 0 14px;
+    color: #cbd5e1;
+    background: #222630;
+    border: 1px solid #343a46;
+    border-radius: 8px;
+    font-size: 13px;
+    transition: all 0.2s ease;
+}
+
+.media-filters button,
+.media-clear-filters {
+    cursor: pointer;
+}
+
+.media-filters button:hover,
+.media-filters select:hover {
+    background: #303744;
+    border-color: #536174;
+}
+
+.media-filters button.active {
+    color: #ffffff;
+    background: #38465d;
+    border-color: #64748b;
+}
+
+.media-filters select {
+    cursor: pointer;
+    outline: none;
+}
+
+.media-clear-filters {
+    color: #fca5a5;
+    background: transparent;
+    border-color: #713f46;
+}
+
+.media-clear-filters:hover {
+    background: #3b252b;
+    border-color: #a34e59;
+}
+
+.media-viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: rgba(8, 10, 14, 0.96);
+    backdrop-filter: blur(12px);
+}
+
+.media-viewer img,
+.media-viewer video {
+    max-width: 90%;
+    max-height: 85%;
+    object-fit: contain;
+    user-select: none;
+}
+
+.media-viewer-close,
+.media-viewer-prev,
+.media-viewer-next {
+    position: absolute;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    color: #f1f5f9;
+    background: rgba(35, 40, 50, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.media-viewer-close:hover,
+.media-viewer-prev:hover,
+.media-viewer-next:hover {
+    color: #ffffff;
+    background: #39465a;
+    transform: scale(1.08);
+}
+
+.media-viewer-close {
+    top: 24px;
+    right: 28px;
+    font-size: 27px;
+}
+
+.media-viewer-prev {
+    left: 24px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+}
+
+.media-viewer-next {
+    right: 24px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+}
+
+.media-viewer-prev:hover,
+.media-viewer-next:hover {
+    transform: translateY(-50%) scale(1.08);
+}
+
+.media-viewer-prev:disabled,
+.media-viewer-next:disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+    transform: translateY(-50%);
+}
+
+.media-viewer-counter {
+    position: absolute;
+    top: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 16px;
+    color: #e2e8f0;
+    font-size: 13px;
+    background: rgba(35, 40, 50, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+}
+
+.media-viewer-zoom {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: rgba(35, 40, 50, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+}
+
+.media-viewer-zoom button {
+    min-width: 36px;
+    height: 34px;
+    padding: 0 10px;
+    color: #e2e8f0;
+    background: #303744;
+    border: 1px solid #414b5b;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.media-viewer-zoom button:hover {
+    background: #46546a;
+}
+
+.media-viewer-zoom span {
+    min-width: 48px;
+    color: #cbd5e1;
+    font-size: 13px;
+    text-align: center;
+}
 
 @media (max-width: 1100px) {
     .statistics-grid {

@@ -17,6 +17,9 @@ function Media() {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedSet, setSelectedSet] = useState("all");
     const [sets, setSets] = useState<any[]>([]);
+    const [selectedModel, setSelectedModel] = useState("all");
+
+
 
     const filteredMedia = media.filter(item => {
         const matchesType =
@@ -34,7 +37,15 @@ function Media() {
                 (location: any) => String(location.gallerySet?.id) === selectedSet
             );
 
-        return matchesType && matchesSearch && matchesSet;
+        const matchesModel =
+            selectedModel === "all" ||
+            item.locations?.some((location: any) =>
+                location.gallerySet?.models?.some(
+                    (model: any) => String(model.id) === selectedModel
+                )
+            );
+
+        return matchesType && matchesSearch && matchesSet && matchesModel;
     });
 
     async function loadMedia() {
@@ -109,6 +120,14 @@ function Media() {
         loadSets();
     }, []);
 
+    const availableModels = Array.from(
+        new Map(
+            sets
+                .flatMap((gallerySet: any) => gallerySet.models ?? [])
+                .map((model: any) => [model.id, model])
+        ).values()
+    );
+
     useEffect(() => {
         if (!selectedMedia) return;
 
@@ -141,47 +160,74 @@ function Media() {
 
     return (
         <div className="media-page">
-            <div className="media-search">
-                <input
-                    type="text"
-                    placeholder="Pesquisar pelo nome do arquivo..."
-                    value={searchTerm}
-                    onChange={(event) => setSearchTerm(event.target.value)}
-                />
-            </div>
-            <div className="media-filters">
-                <select
-                    value={selectedSet}
-                    onChange={(event) => setSelectedSet(event.target.value)}
-                >
-                    <option value="all">Todos os Sets</option>
+            <div className="media-toolbar">
+                <div className="media-search">
+                    <input
+                        type="text"
+                        placeholder="Pesquisar mídias..."
+                        value={searchTerm}
+                        onChange={(event) => setSearchTerm(event.target.value)}
+                    />
+                </div>
 
-                    {sets.map(set => (
-                        <option key={set.id} value={String(set.id)}>
-                            {set.name}
-                        </option>
-                    ))}
-                </select>
-                <button
-                    className={mediaFilter === "all" ? "active" : ""}
-                    onClick={() => setMediaFilter("all")}
-                >
-                    Todas
-                </button>
+                <div className="media-filters">
+                    <button
+                        className={mediaFilter === "all" ? "active" : ""}
+                        onClick={() => setMediaFilter("all")}
+                    >
+                        Todas
+                    </button>
 
-                <button
-                    className={mediaFilter === "image" ? "active" : ""}
-                    onClick={() => setMediaFilter("image")}
-                >
-                    Imagens
-                </button>
+                    <button
+                        className={mediaFilter === "image" ? "active" : ""}
+                        onClick={() => setMediaFilter("image")}
+                    >
+                        Imagens
+                    </button>
 
-                <button
-                    className={mediaFilter === "video" ? "active" : ""}
-                    onClick={() => setMediaFilter("video")}
-                >
-                    Vídeos
-                </button>
+                    <button
+                        className={mediaFilter === "video" ? "active" : ""}
+                        onClick={() => setMediaFilter("video")}
+                    >
+                        Vídeos
+                    </button>
+
+                    <select
+                        value={selectedModel}
+                        onChange={(event) => setSelectedModel(event.target.value)}
+                    >
+                        <option value="all">Todos os Modelos</option>
+                        {availableModels.map((model: any) => (
+                            <option key={model.id} value={String(model.id)}>
+                                {model.name}
+                            </option>
+                        ))}
+                    </select>
+
+                    <select
+                        value={selectedSet}
+                        onChange={(event) => setSelectedSet(event.target.value)}
+                    >
+                        <option value="all">Todos os Sets</option>
+                        {sets.map((set: any) => (
+                            <option key={set.id} value={String(set.id)}>
+                                {set.name}
+                            </option>
+                        ))}
+                    </select>
+
+                    <button
+                        className="media-clear-filters"
+                        onClick={() => {
+                            setSearchTerm("");
+                            setMediaFilter("all");
+                            setSelectedModel("all");
+                            setSelectedSet("all");
+                        }}
+                    >
+                        Limpar filtros
+                    </button>
+                </div>
             </div>
             <div className="page-heading">
                 <div>

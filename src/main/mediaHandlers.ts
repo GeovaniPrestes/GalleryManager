@@ -4,6 +4,7 @@ import MediaLocation from "../database/models/MediaLocation";
 import GallerySet from "../database/models/GallerySet";
 import { allowPreviewPath } from "./services/previewAccess";
 import Miniset from "../database/models/Miniset";
+import Model from "../database/models/Model";
 
 export function registerMediaHandlers(): void {
     ipcMain.handle("media:list", async (_event, data) => {
@@ -26,7 +27,17 @@ export function registerMediaHandlers(): void {
                         {
                             model: GallerySet,
                             as: "gallerySet",
-                            attributes: ["id", "name"]
+                            attributes: ["id", "name"],
+                            include: [
+                                {
+                                    model: Model,
+                                    as: "models",
+                                    attributes: ["id", "name"],
+                                    through: {
+                                        attributes: []
+                                    }
+                                }
+                            ]
                         },
                         {
                             model: Miniset,
