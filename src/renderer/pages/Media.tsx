@@ -18,8 +18,7 @@ function Media() {
     const [selectedSet, setSelectedSet] = useState("all");
     const [sets, setSets] = useState<any[]>([]);
     const [selectedModel, setSelectedModel] = useState("all");
-
-
+    const [showMediaInfo, setShowMediaInfo] = useState(false);
 
     const filteredMedia = media.filter(item => {
         const matchesType =
@@ -101,6 +100,16 @@ function Media() {
         setSelectedMedia(filteredMedia[nextIndex]);
         setZoom(1);
         setPosition({ x: 0, y: 0 });
+    }
+
+    function formatFileSize(bytes: number): string {
+        if (bytes === 0) return "0 B";
+
+        const units = ["B", "KB", "MB", "GB", "TB"];
+        const index = Math.floor(Math.log(bytes) / Math.log(1024));
+        const size = bytes / Math.pow(1024, index);
+
+        return `${size.toFixed(2)} ${units[index]}`;
     }
 
     useEffect(() => {
@@ -302,6 +311,16 @@ function Media() {
                     onMouseLeave={() => setDragging(false)}
                 >
                     <button
+                        className="media-viewer-info-button"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            setShowMediaInfo(previous => !previous);
+                        }}
+                        title="Informações da mídia"
+                    >
+                        ⓘ
+                    </button>
+                    <button
                         className="media-viewer-close"
                         onClick={() => {
                             setSelectedMedia(null);
@@ -311,6 +330,74 @@ function Media() {
                     >
                         ×
                     </button>
+                    {showMediaInfo && (
+                        <div
+                            className="media-info-panel"
+                            onClick={(event) => event.stopPropagation()}
+                        >
+                            <div className="media-info-header">
+                                <h3>Informações da mídia</h3>
+
+                                <button
+                                    onClick={() => setShowMediaInfo(false)}
+                                >
+                                    ×
+                                </button>
+                            </div>
+
+                            <div className="media-info-content">
+                                <div>
+                                    <label>Nome do arquivo</label>
+                                    <p>{selectedMedia.locations?.[0]?.fileName}</p>
+                                </div>
+
+                                <div>
+                                    <label>Tipo</label>
+                                    <p>{selectedMedia.mediaType}</p>
+                                </div>
+
+                                <div>
+                                    <label>Extensão</label>
+                                    <p>{selectedMedia.locations?.[0]?.extension}</p>
+                                </div>
+
+                                <div>
+                                    <label>Tamanho</label>
+                                    <p>{formatFileSize(Number(selectedMedia.locations?.[0]?.fileSize ?? 0))}</p>
+                                </div>
+
+                                <div>
+                                    <label>Modelo(s)</label>
+                                    <p>
+                                        {selectedMedia.locations?.[0]?.gallerySet?.models
+                                            ?.map((model: any) => model.name)
+                                            .join(", ") || "Nenhum modelo"}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <label>Set</label>
+                                    <p>
+                                        {selectedMedia.locations?.[0]?.gallerySet?.name || "Sem Set"}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <label>Miniset</label>
+                                    <p>
+                                        {selectedMedia.locations?.[0]?.miniset?.name || "Raiz do Set"}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <label>Caminho original</label>
+                                    <p className="media-info-path">
+                                        {selectedMedia.locations?.[0]?.filePath}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     <button
                         className="media-viewer-prev"
                         onClick={(event) => {

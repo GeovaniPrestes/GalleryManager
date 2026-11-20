@@ -688,6 +688,7 @@
     font-size: 36px;
     cursor: pointer;
 }
+
 .media-toolbar {
     display: flex;
     align-items: center;
@@ -899,6 +900,106 @@
     color: #cbd5e1;
     font-size: 13px;
     text-align: center;
+}
+
+.media-viewer-info-button {
+    position: absolute;
+    top: 24px;
+    right: 88px;
+    z-index: 3;
+    width: 46px;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #e2e8f0;
+    font-size: 22px;
+    background: rgba(35, 40, 50, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.media-viewer-info-button:hover {
+    background: #39465a;
+    transform: scale(1.08);
+}
+
+.media-info-panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 2;
+    width: 360px;
+    max-width: 90%;
+    height: 100%;
+    padding: 24px;
+    overflow-y: auto;
+    color: #e2e8f0;
+    background: #191c23;
+    border-left: 1px solid #343a46;
+    box-shadow: -12px 0 35px rgba(0, 0, 0, 0.3);
+}
+
+.media-info-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #343a46;
+}
+
+.media-info-header h3 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.media-info-header button {
+    width: 32px;
+    height: 32px;
+    color: #cbd5e1;
+    font-size: 22px;
+    background: #303744;
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+}
+
+.media-info-header button:hover {
+    background: #46546a;
+}
+
+.media-info-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding-top: 22px;
+}
+
+.media-info-content>div {
+    min-width: 0;
+}
+
+.media-info-content label {
+    display: block;
+    margin-bottom: 6px;
+    color: #94a3b8;
+    font-size: 12px;
+}
+
+.media-info-content p {
+    margin: 0;
+    color: #e2e8f0;
+    font-size: 13px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.media-info-path {
+    color: #a5b4fc !important;
+    font-size: 12px !important;
 }
 
 @media (max-width: 1100px) {
