@@ -201,6 +201,12 @@ interface ElectronAPI {
             }>;
         };
     }>;
+
+    scanModelSetFolders: (modelId: number) => Promise<Array<{
+        name: string;
+        folderPath: string;
+        alreadyRegistered: boolean;
+    }>>;
 }
 
 declare global {

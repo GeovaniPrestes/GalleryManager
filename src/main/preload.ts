@@ -79,4 +79,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     }) => ipcRenderer.invoke("audit:list", data),
 
     getDashboardData: () => ipcRenderer.invoke("dashboard:get-data"),
+
+    scanModelSetFolders: (modelId: number) =>
+        ipcRenderer.invoke("sets:scan-model-folders", modelId),
 });

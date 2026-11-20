@@ -5,6 +5,7 @@ import { allowPreviewPath } from "./services/previewAccess";
 import { indexSetMedia } from "./services/Media/mediaIndexer";
 import { registerAuditLog } from "./services/auditLogger";
 import { resolve } from "node:path";
+import { scanSetFolders } from "./services/setFolderScanner"; 
 import GallerySet from "../database/models/GallerySet";
 import Model from "../database/models/Model";
 import SetModel from "../database/models/SetModel";
@@ -13,6 +14,41 @@ import Media from "../database/models/Media";
 import MediaLocation from "../database/models/MediaLocation";
 
 export function registerSetHandlers(): void {
+
+    ipcMain.handle("sets:scan-model-folders", async (_event, modelId) => {
+        const id = Number(modelId);
+
+        if (!Number.isInteger(id) || id <= 0) {
+            throw new Error("ID do Modelo inválido.");
+        }
+
+        const model = await Model.findByPk(id);
+
+        if (!model) {
+            throw new Error("Modelo não encontrado.");
+        }
+
+        if (!model.folderPath) {
+            throw new Error("Este Modelo não possui uma pasta cadastrada.");
+        }
+
+        const folders = await scanSetFolders(model.folderPath);
+
+        const existingSets = await GallerySet.findAll({
+            attributes: ["folderPath"]
+        });
+
+        const existingPaths = new Set(
+            existingSets.map(set => resolve(set.folderPath).toLowerCase())
+        );
+
+        return folders.map(folder => ({
+            ...folder,
+            alreadyRegistered: existingPaths.has(
+                resolve(folder.folderPath).toLowerCase()
+            )
+        }));
+    });
 
     ipcMain.handle("sets:index-media", async (_event, id) => {
         const setId = Number(id);

@@ -22,6 +22,18 @@ function Sets({ onOpenSet }: SetsProps) {
     const [selectedThumbnail, setSelectedThumbnail] = useState<string | null>(null);
     const [indexingSetId, setIndexingSetId] = useState<number | null>(null);
 
+    const [showAutoForm, setShowAutoForm] = useState(false);
+    const [autoSelectedModelId, setAutoSelectedModelId] = useState<number | "">("");
+    const [scannedSetFolders, setScannedSetFolders] = useState<Array<{
+        name: string;
+        folderPath: string;
+        alreadyRegistered: boolean;
+    }>>([]);
+
+    const [selectedAutoFolders, setSelectedAutoFolders] = useState<string[]>([]);
+
+    const [scanning, setScanning] = useState(false);
+
     async function loadSets() {
         try {
             const [setsResult, modelsResult] = await Promise.all([
@@ -188,6 +200,110 @@ function Sets({ onOpenSet }: SetsProps) {
         });
     }
 
+    async function handleScanModelFolders() {
+        if (!autoSelectedModelId) {
+            alert("Selecione um Modelo.");
+            return;
+        }
+
+        try {
+            setScanning(true);
+
+            const result = await window.electronAPI.scanModelSetFolders(
+                autoSelectedModelId
+            );
+
+            const folders = result.map((folder) => ({
+                ...folder,
+                name: folder.name
+                    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+                    .replace(/\s+/g, " ")
+                    .trim()
+            }));
+
+            setScannedSetFolders(folders);
+
+            setSelectedAutoFolders(
+                folders
+                    .filter((folder) => !folder.alreadyRegistered)
+                    .map((folder) => folder.folderPath)
+            );
+
+        } catch (error) {
+            console.error("Erro ao analisar pastas do Modelo:", error);
+            alert("Não foi possível analisar as pastas deste Modelo.");
+        } finally {
+            setScanning(false);
+        }
+    }
+
+    async function handleCreateAutoSets() {
+        const foldersToCreate = scannedSetFolders.filter(
+            (folder) =>
+                selectedAutoFolders.includes(folder.folderPath) &&
+                !folder.alreadyRegistered
+        );
+
+        if (foldersToCreate.length === 0) {
+            alert("Selecione pelo menos uma pasta para cadastrar.");
+            return;
+        }
+
+        const invalidNames = foldersToCreate.some(
+            (folder) => !folder.name.trim()
+        );
+
+        if (invalidNames) {
+            alert("Todas as pastas precisam ter um nome válido.");
+            return;
+        }
+
+        const confirmed = window.confirm(
+            `Deseja cadastrar ${foldersToCreate.length} Set(s) no Modelo selecionado?`
+        );
+
+        if (!confirmed) return;
+
+        let created = 0;
+
+        try {
+            setSaving(true);
+
+            for (const folder of foldersToCreate) {
+                await window.electronAPI.createSet({
+                    name: folder.name.trim(),
+                    description: "",
+                    folderPath: folder.folderPath,
+                    modelIds: [autoSelectedModelId as number],
+                    selectedThumbnail: null
+                });
+
+                created++;
+            }
+
+            await loadSets();
+
+            setShowAutoForm(false);
+            setScannedSetFolders([]);
+            setSelectedAutoFolders([]);
+            setAutoSelectedModelId("");
+
+            alert(`${created} Set(s) cadastrado(s) com sucesso!`);
+
+        } catch (error) {
+            console.error("Erro ao gerar Sets automaticamente:", error);
+
+            await loadSets();
+
+            alert(
+                `O processo foi interrompido após cadastrar ${created} Set(s).\nVerifique os Sets cadastrados antes de tentar novamente.`
+            );
+
+        } finally {
+            setSaving(false);
+        }
+    }
+
     return (
         <div className="sets-page">
             <div className="page-heading">
@@ -197,6 +313,16 @@ function Sets({ onOpenSet }: SetsProps) {
                 </div>
 
                 <div className="page-actions">
+                    <button
+                        className="secondary-button"
+                        onClick={() => {
+                            setAutoSelectedModelId("");
+                            setScannedSetFolders([]);
+                            setShowAutoForm(true);
+                        }}
+                    >
+                        Gerar Sets automaticamente
+                    </button>
                     <button
                         className="secondary-button"
                         onClick={async () => {
@@ -441,21 +567,146 @@ function Sets({ onOpenSet }: SetsProps) {
                         <div className="modal-footer">
                             <button
                                 className="secondary-button"
-                                onClick={() => setShowForm(false)}
+                                onClick={() => setShowAutoForm(false)}
+                                disabled={saving}
                             >
-                                Cancelar
+                                Fechar
                             </button>
 
                             <button
                                 className="primary-button"
-                                onClick={handleCreateSet}
-                                disabled={saving}
+                                onClick={handleCreateAutoSets}
+                                disabled={
+                                    saving ||
+                                    selectedAutoFolders.length === 0 ||
+                                    scannedSetFolders.length === 0
+                                }
                             >
                                 {saving
-                                    ? "Salvando..."
-                                    : editingSet
-                                        ? "Salvar alterações"
-                                        : "Salvar set"}
+                                    ? "Cadastrando..."
+                                    : `Cadastrar ${selectedAutoFolders.length} Set(s)`}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {showAutoForm && (
+                <div className="modal-overlay">
+                    <div className="modal">
+                        <div className="modal-header">
+                            <h2>Gerar Sets automaticamente</h2>
+
+                            <button
+                                className="modal-close"
+                                onClick={() => setShowAutoForm(false)}
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        <div className="modal-body">
+                            <label>Selecione o Modelo</label>
+
+                            <select
+                                value={autoSelectedModelId}
+                                onChange={(event) => {
+                                    setAutoSelectedModelId(
+                                        event.target.value ? Number(event.target.value) : ""
+                                    );
+                                    setScannedSetFolders([]);
+                                    setSelectedAutoFolders([]);
+                                }}
+                            >
+                                <option value="">Selecione um Modelo...</option>
+
+                                {models.map((model) => (
+                                    <option key={model.id} value={model.id}>
+                                        {model.name}
+                                    </option>
+                                ))}
+                            </select>
+
+                            <button
+                                className="primary-button"
+                                onClick={handleScanModelFolders}
+                                disabled={!autoSelectedModelId || scanning}
+                            >
+                                {scanning
+                                    ? "Analisando pastas..."
+                                    : "Analisar subpastas"}
+                            </button>
+
+                            {scannedSetFolders.length > 0 && (
+                                <div className="auto-set-list">
+                                    <p>
+                                        {scannedSetFolders.length} pasta(s) encontrada(s).
+                                    </p>
+
+                                    {scannedSetFolders.map((folder) => (
+                                        <div
+                                            className="auto-set-item"
+                                            key={folder.folderPath}
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedAutoFolders.includes(folder.folderPath)}
+                                                disabled={folder.alreadyRegistered}
+                                                onChange={(event) => {
+                                                    setSelectedAutoFolders((current) =>
+                                                        event.target.checked
+                                                            ? [...current, folder.folderPath]
+                                                            : current.filter(
+                                                                (path) => path !== folder.folderPath
+                                                            )
+                                                    );
+                                                }}
+                                            />
+
+                                            <div>
+                                                <input
+                                                    type="text"
+                                                    value={folder.name}
+                                                    disabled={folder.alreadyRegistered}
+                                                    onChange={(event) => {
+                                                        setScannedSetFolders((current) =>
+                                                            current.map((item) =>
+                                                                item.folderPath === folder.folderPath
+                                                                    ? { ...item, name: event.target.value }
+                                                                    : item
+                                                            )
+                                                        );
+                                                    }}
+                                                />
+
+                                                <small>{folder.folderPath}</small>
+                                            </div>
+
+                                            {folder.alreadyRegistered && (
+                                                <span>Já cadastrado</span>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="modal-footer">
+                            <button
+                                className="primary-button"
+                                onClick={handleCreateAutoSets}
+                                disabled={
+                                    saving ||
+                                    selectedAutoFolders.length === 0 ||
+                                    scannedSetFolders.length === 0
+                                }
+                            >
+                                {saving ? "Cadastrando..." : `Cadastrar ${selectedAutoFolders.length} Set(s)`}
+                            </button>
+                            <button
+                                className="secondary-button"
+                                onClick={() => setShowAutoForm(false)}
+                            >
+                                Fechar
                             </button>
                         </div>
                     </div>
@@ -463,6 +714,7 @@ function Sets({ onOpenSet }: SetsProps) {
             )}
         </div>
     );
+
 }
 
 export default Sets;
