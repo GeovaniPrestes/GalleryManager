@@ -377,7 +377,7 @@ function Sets({ onOpenSet }: SetsProps) {
             const folders = result.map((folder) => ({
                 ...folder,
                 name: folder.name
-                    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+                    .replace(/[^\p{L}\p{N}\s&]/gu, " ")
                     .replace(/\s+/g, " ")
                     .trim()
             }));
@@ -725,7 +725,7 @@ function Sets({ onOpenSet }: SetsProps) {
                                                 .pop() || "";
 
                                             const sanitizedName = folderName
-                                                .replace(/[^\p{L}\p{N}\s]/gu, " ")
+                                                .replace(/[^\p{L}\p{N}\s&]/gu, " ")
                                                 .replace(/\s+/g, " ")
                                                 .trim();
 
