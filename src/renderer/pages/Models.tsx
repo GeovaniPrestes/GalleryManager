@@ -1,21 +1,13 @@
 import { useEffect, useState } from "react";
-
-interface Model {
-    id: number;
-    name: string;
-    description: string | null;
-    thumbnailPath: string | null;
-    createdAt: Date;
-    updatedAt: Date;
-}
+import type { ModelRecord } from "../electron";
 
 interface ModelsProps {
     editingEnabled: boolean;
-    onSelectModel: (model: Model) => void;
+    onSelectModel: (model: ModelRecord) => void;
 }
 
 function Models({ editingEnabled, onSelectModel }: ModelsProps) {
-    const [models, setModels] = useState<Model[]>([]);
+    const [models, setModels] = useState<ModelRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [name, setName] = useState("");
@@ -23,7 +15,7 @@ function Models({ editingEnabled, onSelectModel }: ModelsProps) {
     const [folderPath, setFolderPath] = useState("");
     const [saving, setSaving] = useState(false);
     const [search, setSearch] = useState("");
-    const [editingModel, setEditingModel] = useState<Model | null>(null);
+    const [editingModel, setEditingModel] = useState<ModelRecord | null>(null);
     const [selectedThumbnail, setSelectedThumbnail] = useState<string | null>(null);
 
     useEffect(() => {
@@ -86,11 +78,7 @@ function Models({ editingEnabled, onSelectModel }: ModelsProps) {
             const updatedModels = await window.electronAPI.listModels();
             setModels(updatedModels);
 
-            setName("");
-            setDescription("");
-            setFolderPath("");
-            setSelectedThumbnail(null);
-            setShowForm(false);
+            handleCloseForm();
         } catch (error) {
             console.error("Erro ao cadastrar modelo:", error);
             alert("Não foi possível cadastrar o modelo.");
@@ -114,19 +102,14 @@ function Models({ editingEnabled, onSelectModel }: ModelsProps) {
                 id: editingModel.id,
                 name: name.trim(),
                 description: description.trim(),
-                folderPath: folderPath.trim(),
+                folderPath: folderPath.trim() || editingModel.folderPath || "",
                 selectedThumbnail: selectedThumbnail?.trim() || null,
             });
 
             const updatedModels = await window.electronAPI.listModels();
             setModels(updatedModels);
 
-            setName("");
-            setDescription("");
-            setFolderPath("");
-            setSelectedThumbnail(null);
-            setEditingModel(null);
-            setShowForm(false);
+            handleCloseForm();
         } catch (error) {
             console.error("Erro ao atualizar modelo:", error);
             alert("Não foi possível atualizar o modelo.");
@@ -135,7 +118,7 @@ function Models({ editingEnabled, onSelectModel }: ModelsProps) {
         }
     }
 
-    async function handleDeleteModel(model: Model) {
+    async function handleDeleteModel(model: ModelRecord) {
         const confirmed = window.confirm(
             `Tem certeza que deseja excluir o modelo "${model.name}"?`
         );
@@ -157,11 +140,11 @@ function Models({ editingEnabled, onSelectModel }: ModelsProps) {
         model.name.toLowerCase().includes(search.toLowerCase())
     );
 
-    function handleEditModel(model: Model) {
+    function handleEditModel(model: ModelRecord) {
         setEditingModel(model);
         setName(model.name);
         setDescription(model.description || "");
-        setFolderPath("");
+        setFolderPath(model.folderPath || "");
         setSelectedThumbnail(model.thumbnailPath);
         setShowForm(true);
     }

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import MainLayout from "./components/MainLayout";
 import Dashboard from "./pages/Dashboard";
@@ -7,11 +8,13 @@ import Minisets from "./pages/Miniset";
 import Media from "./pages/Media";
 import Audit from "./pages/Audit";
 
-import type { SetRecord } from "./electron";
+import type { SetRecord, ModelRecord } from "./electron";
 
 function App() {
-    const [activePage, setActivePage] = useState("dashboard");
+    const [activePage, setActivePage] = useState("models");
+    const [selectedModel, setSelectedModel] = useState<ModelRecord | null>(null);
     const [selectedSet, setSelectedSet] = useState<SetRecord | null>(null);
+
     const [editingEnabled, setEditingEnabled] = useState(
         () => localStorage.getItem("galerymanager-editing-enabled") === "true"
     );
@@ -58,10 +61,28 @@ function App() {
                 return <Dashboard />;
 
             case "models":
-                return <Models />;
+                return (
+                    <Models
+                        editingEnabled={editingEnabled}
+                        onSelectModel={(model) => {
+                            setSelectedModel(model);
+                            setActivePage("sets");
+                        }}
+                    />
+                );
 
             case "sets":
-                return <Sets onOpenSet={setSelectedSet} />;
+                return (
+                    <Sets
+                        onOpenSet={setSelectedSet}
+                        selectedModel={selectedModel}
+                        editingEnabled={editingEnabled}
+                        onBackToModels={() => {
+                            setSelectedModel(null);
+                            setActivePage("models");
+                        }}
+                    />
+                );
 
             case "media":
                 return <Media />;
@@ -70,7 +91,13 @@ function App() {
                 return <Audit />;
 
             default:
-                return <Dashboard />;
+                return <Models
+                    editingEnabled={editingEnabled}
+                    onSelectModel={(model) => {
+                        setSelectedModel(model);
+                        setActivePage("sets");
+                    }}
+                />;
         }
     }
 
@@ -79,6 +106,7 @@ function App() {
             activePage={selectedSet ? "minisets" : activePage}
             onNavigate={(page) => {
                 setSelectedSet(null);
+                setSelectedModel(null);
                 setActivePage(page);
             }}
             editingEnabled={editingEnabled}

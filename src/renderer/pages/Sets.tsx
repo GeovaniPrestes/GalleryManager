@@ -1,12 +1,20 @@
+
 import { useEffect, useState } from "react";
-import type { SetRecord } from "../electron";
-import type { ModelRecord } from "../electron";
+import type { SetRecord, ModelRecord } from "../electron";
 
 interface SetsProps {
     onOpenSet: (gallerySet: SetRecord) => void;
+    selectedModel?: ModelRecord | null;
+    editingEnabled?: boolean;
+    onBackToModels?: () => void;
 }
 
-function Sets({ onOpenSet }: SetsProps) {
+function Sets({
+    onOpenSet,
+    selectedModel = null,
+    editingEnabled = true,
+    onBackToModels
+}: SetsProps) {
     const [sets, setSets] = useState<SetRecord[]>([]);
     const [models, setModels] = useState<ModelRecord[]>([]);
     const [selectedModels, setSelectedModels] = useState<number[]>([]);
@@ -33,18 +41,12 @@ function Sets({ onOpenSet }: SetsProps) {
 
     const [showUnavailableOnly, setShowUnavailableOnly] = useState(false);
 
-    const filteredSets = showUnavailableOnly
-        ? sets.filter((gallerySet) =>
-            unavailableSetIds.includes(gallerySet.id)
-        )
-        : sets;
-
     const [selectedAutoFolders, setSelectedAutoFolders] = useState<string[]>([]);
-
     const [scanning, setScanning] = useState(false);
 
     const [showAutoIndexForm, setShowAutoIndexForm] = useState(false);
     const [autoIndexModelId, setAutoIndexModelId] = useState<number | "">("");
+
     const [scannedIndexSets, setScannedIndexSets] = useState<Array<
         SetRecord & {
             totalFiles: number;
@@ -56,6 +58,7 @@ function Sets({ onOpenSet }: SetsProps) {
             needsIndexing: boolean;
         }
     >>([]);
+
     const [selectedIndexSets, setSelectedIndexSets] = useState<number[]>([]);
     const [indexingAll, setIndexingAll] = useState(false);
 
@@ -71,6 +74,42 @@ function Sets({ onOpenSet }: SetsProps) {
         success: boolean;
         error?: string;
     }>>([]);
+
+    const modelSets = selectedModel
+        ? sets.filter((gallerySet) =>
+            gallerySet.models.some(
+                (model) => model.id === selectedModel.id
+            )
+        )
+        : sets;
+
+    const filteredSets = showUnavailableOnly
+        ? modelSets.filter((gallerySet) =>
+            unavailableSetIds.includes(gallerySet.id)
+        )
+        : modelSets;
+
+    async function loadSets() {
+        try {
+            const [setsResult, modelsResult, unavailableResult] = await Promise.all([
+                window.electronAPI.listSets(),
+                window.electronAPI.listModels(),
+                window.electronAPI.getUnavailableSetIds()
+            ]);
+
+            setSets(setsResult);
+            setModels(modelsResult);
+            setUnavailableSetIds(unavailableResult);
+        } catch (error) {
+            console.error("Erro ao carregar sets:", error);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    useEffect(() => {
+        loadSets();
+    }, []);
 
     async function handleCheckMediaIndex() {
         if (autoIndexModelId === "") {
@@ -192,28 +231,6 @@ function Sets({ onOpenSet }: SetsProps) {
         });
     }
 
-    async function loadSets() {
-        try {
-            const [setsResult, modelsResult, unavailableResult] = await Promise.all([
-                window.electronAPI.listSets(),
-                window.electronAPI.listModels(),
-                window.electronAPI.getUnavailableSetIds()
-            ]);
-
-            setSets(setsResult);
-            setModels(modelsResult);
-            setUnavailableSetIds(unavailableResult);
-        } catch (error) {
-            console.error("Erro ao carregar sets:", error);
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    useEffect(() => {
-        loadSets();
-    }, []);
-
     const handleSelectThumbnail = async () => {
         const path = await window.electronAPI.selectSetThumbnail(folderPath);
 
@@ -221,6 +238,16 @@ function Sets({ onOpenSet }: SetsProps) {
             setSelectedThumbnail(path);
         }
     };
+
+    function resetForm() {
+        setName("");
+        setDescription("");
+        setFolderPath("");
+        setSelectedModels([]);
+        setSelectedThumbnail(null);
+        setEditingSet(null);
+        setShowForm(false);
+    }
 
     async function handleCreateSet() {
         if (!name.trim()) {
@@ -255,21 +282,12 @@ function Sets({ onOpenSet }: SetsProps) {
                 });
             }
 
-            const updatedSets = await window.electronAPI.listSets();
-            setSets(updatedSets);
-
-            setName("");
-            setDescription("");
-            setFolderPath("");
-            setSelectedModels([]);
-            setSelectedThumbnail(null);
-            setShowForm(false);
-            setEditingSet(null);
+            await loadSets();
+            resetForm();
 
         } catch (error) {
             console.error("Erro ao cadastrar set:", error);
             alert("Não foi possível cadastrar o set. Verifique se essa pasta já está cadastrada.");
-
         } finally {
             setSaving(false);
         }
@@ -277,7 +295,6 @@ function Sets({ onOpenSet }: SetsProps) {
 
     function handleEditSet(gallerySet: SetRecord) {
         setEditingSet(gallerySet);
-
         setName(gallerySet.name);
         setDescription(gallerySet.description || "");
         setFolderPath(gallerySet.folderPath);
@@ -299,10 +316,7 @@ function Sets({ onOpenSet }: SetsProps) {
 
         try {
             await window.electronAPI.deleteSet(gallerySet.id);
-
-            const updatedSets = await window.electronAPI.listSets();
-            setSets(updatedSets);
-
+            await loadSets();
         } catch (error) {
             console.error("Erro ao excluir Set:", error);
             alert("Não foi possível excluir o Set.");
@@ -470,76 +484,112 @@ function Sets({ onOpenSet }: SetsProps) {
             <div className="page-heading">
                 <div>
                     <h1>Sets</h1>
-                    <p>Gerencie os sets da sua biblioteca.</p>
+                    <p>
+                        {selectedModel
+                            ? `Sets associados ao modelo ${selectedModel.name}.`
+                            : "Gerencie os sets da sua biblioteca."}
+                    </p>
                 </div>
 
                 <div className="page-actions">
-                    <button
-                        className="secondary-button"
-                        onClick={async () => {
-                            try {
-                                await window.electronAPI.openErrorLogsFolder();
-                            } catch (error) {
-                                console.error("Erro ao abrir logs:", error);
-                                alert("Não foi possível abrir a pasta de logs.");
-                            }
-                        }}
-                    >
-                        <span>📁</span> Abrir logs de erros
-                    </button>
-                    <button
-                        className="btn-secondary"
-                        onClick={() => {
-                            setShowAutoIndexForm(true);
-                            setAutoIndexModelId("");
-                            setScannedIndexSets([]);
-                            setSelectedIndexSets([]);
-                            setAutoIndexResults([]);
-                        }}
-                    >
-                        Indexar mídias automaticamente
-                    </button>
-                    <button
-                        className="secondary-button"
-                        onClick={() => {
-                            setAutoSelectedModelId("");
-                            setScannedSetFolders([]);
-                            setShowAutoForm(true);
-                        }}
-                    >
-                        Gerar Sets automaticamente
-                    </button>
-                    <button
-                        className="secondary-button"
-                        onClick={async () => {
-                            try {
-                                const result = await window.electronAPI.generateMissingSetThumbnails();
+                    {selectedModel && onBackToModels && (
+                        <button
+                            className="secondary-button"
+                            onClick={onBackToModels}
+                        >
+                            ← Voltar aos Modelos
+                        </button>
+                    )}
 
-                                alert(
-                                    `Processo concluído!\nSets analisados: ${result.total}\nThumbnails geradas: ${result.generated}`
-                                );
-                                await loadSets();
-                            } catch (error) {
-                                console.error(error);
-                                alert("Erro ao gerar thumbnails dos Sets.");
-                            }
-                        }}
-                    >
-                        Gerar thumbnails pendentes
-                    </button>
+                    {editingEnabled && (
+                        <>
+                            <button
+                                className="secondary-button"
+                                onClick={async () => {
+                                    try {
+                                        await window.electronAPI.openErrorLogsFolder();
+                                    } catch (error) {
+                                        console.error("Erro ao abrir logs:", error);
+                                        alert("Não foi possível abrir a pasta de logs.");
+                                    }
+                                }}
+                            >
+                                <span>📁</span> Abrir logs de erros
+                            </button>
 
-                    <button
-                        className="primary-button"
-                        onClick={() => setShowForm(true)}
-                    >
-                        + Novo set
-                    </button>
+                            <button
+                                className="btn-secondary"
+                                onClick={() => {
+                                    setShowAutoIndexForm(true);
+                                    setAutoIndexModelId(
+                                        selectedModel?.id ?? ""
+                                    );
+                                    setScannedIndexSets([]);
+                                    setSelectedIndexSets([]);
+                                    setAutoIndexResults([]);
+                                }}
+                            >
+                                Indexar mídias automaticamente
+                            </button>
+
+                            <button
+                                className="secondary-button"
+                                onClick={() => {
+                                    setAutoSelectedModelId(
+                                        selectedModel?.id ?? ""
+                                    );
+                                    setScannedSetFolders([]);
+                                    setShowAutoForm(true);
+                                }}
+                            >
+                                Gerar Sets automaticamente
+                            </button>
+
+                            <button
+                                className="secondary-button"
+                                onClick={async () => {
+                                    try {
+                                        const result = await window.electronAPI.generateMissingSetThumbnails();
+
+                                        alert(
+                                            `Processo concluído!\nSets analisados: ${result.total}\nThumbnails geradas: ${result.generated}`
+                                        );
+
+                                        await loadSets();
+                                    } catch (error) {
+                                        console.error(error);
+                                        alert("Erro ao gerar thumbnails dos Sets.");
+                                    }
+                                }}
+                            >
+                                Gerar thumbnails pendentes
+                            </button>
+
+                            <button
+                                className="primary-button"
+                                onClick={() => {
+                                    setEditingSet(null);
+                                    setName("");
+                                    setDescription("");
+                                    setFolderPath("");
+                                    setSelectedModels(
+                                        selectedModel ? [selectedModel.id] : []
+                                    );
+                                    setSelectedThumbnail(null);
+                                    setShowForm(true);
+                                }}
+                            >
+                                + Novo set
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
 
             <div className="sets-toolbar">
                 <span>
-                    {filteredSets.length} {showUnavailableOnly
+                    {filteredSets.length} de {modelSets.length}{" "}
+                    {showUnavailableOnly
                         ? "Sets indisponíveis"
                         : "Sets cadastrados"}
                 </span>
@@ -559,7 +609,11 @@ function Sets({ onOpenSet }: SetsProps) {
             ) : filteredSets.length === 0 ? (
                 <div className="empty-state">
                     <h3>Nenhum set cadastrado</h3>
-                    <p>Adicione seu primeiro set à biblioteca.</p>
+                    <p>
+                        {selectedModel
+                            ? "Este Modelo ainda não possui Sets associados."
+                            : "Adicione seu primeiro set à biblioteca."}
+                    </p>
                 </div>
             ) : (
                 <div className="sets-grid">
@@ -588,6 +642,7 @@ function Sets({ onOpenSet }: SetsProps) {
                                 <p>
                                     {gallerySet.description || "Sem descrição"}
                                 </p>
+
                                 <div className="set-index-info">
                                     <span className={`set-index-status status-${gallerySet.mediaIndexStatus}`}>
                                         {gallerySet.mediaIndexStatus === "pending" && "Não indexado"}
@@ -603,6 +658,7 @@ function Sets({ onOpenSet }: SetsProps) {
                                         </small>
                                     )}
                                 </div>
+
                                 <div className="set-models">
                                     <span>Modelos participantes:</span>
 
@@ -614,9 +670,11 @@ function Sets({ onOpenSet }: SetsProps) {
                                         </p>
                                     )}
                                 </div>
+
                                 <span className="set-folder">
                                     {gallerySet.folderPath}
                                 </span>
+
                                 <button
                                     className="primary-button"
                                     onClick={() => onOpenSet(gallerySet)}
@@ -625,47 +683,51 @@ function Sets({ onOpenSet }: SetsProps) {
                                     Abrir Set
                                 </button>
 
-                                <button
-                                    className="secondary-button"
-                                    onClick={() => handleEditSet(gallerySet)}
-                                >
-                                    Editar
-                                </button>
+                                {editingEnabled && (
+                                    <>
+                                        <button
+                                            className="secondary-button"
+                                            onClick={() => handleEditSet(gallerySet)}
+                                        >
+                                            Editar
+                                        </button>
 
-                                <button
-                                    className="delete-button"
-                                    onClick={() => handleDeleteSet(gallerySet)}
-                                >
-                                    Excluir
-                                </button>
+                                        <button
+                                            className="delete-button"
+                                            onClick={() => handleDeleteSet(gallerySet)}
+                                        >
+                                            Excluir
+                                        </button>
 
-                                <button
-                                    className="secondary-button"
-                                    onClick={() => handleScanMinisets(gallerySet)}
-                                    disabled={unavailableSetIds.includes(gallerySet.id)}
-                                >
-                                    Indexar subpastas
-                                </button>
+                                        <button
+                                            className="secondary-button"
+                                            onClick={() => handleScanMinisets(gallerySet)}
+                                            disabled={unavailableSetIds.includes(gallerySet.id)}
+                                        >
+                                            Indexar subpastas
+                                        </button>
 
-                                <button
-                                    className="primary-button"
-                                    onClick={() => handleIndexMedia(gallerySet)}
-                                    disabled={
-                                        unavailableSetIds.includes(gallerySet.id) ||
-                                        indexingSetId !== null
-                                    }
-                                >
-                                    {indexingSetId === gallerySet.id
-                                        ? "Indexando mídias..."
-                                        : "Indexar mídias"}
-                                </button>
+                                        <button
+                                            className="primary-button"
+                                            onClick={() => handleIndexMedia(gallerySet)}
+                                            disabled={
+                                                unavailableSetIds.includes(gallerySet.id) ||
+                                                indexingSetId !== null
+                                            }
+                                        >
+                                            {indexingSetId === gallerySet.id
+                                                ? "Indexando mídias..."
+                                                : "Indexar mídias"}
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </div>
                     ))}
                 </div>
             )}
 
-            {showForm && (
+            {showForm && editingEnabled && (
                 <div className="modal-overlay">
                     <div className="modal">
                         <div className="modal-header">
@@ -673,7 +735,7 @@ function Sets({ onOpenSet }: SetsProps) {
 
                             <button
                                 className="modal-close"
-                                onClick={() => setShowForm(false)}
+                                onClick={resetForm}
                             >
                                 ×
                             </button>
@@ -706,13 +768,13 @@ function Sets({ onOpenSet }: SetsProps) {
                             <button
                                 className="secondary-button"
                                 onClick={async () => {
-                                    const selectedModel = models.find(
+                                    const selectedModelForFolder = models.find(
                                         (model) => model.id === selectedModels[0]
                                     );
 
                                     const selectedFolder =
                                         await window.electronAPI.selectSetFolder(
-                                            selectedModel?.folderPath ?? undefined
+                                            selectedModelForFolder?.folderPath ?? undefined
                                         );
 
                                     if (selectedFolder) {
@@ -751,6 +813,7 @@ function Sets({ onOpenSet }: SetsProps) {
                                     {selectedThumbnail || "Thumbnail automática"}
                                 </small>
                             </div>
+
                             {selectedThumbnail && (
                                 <div className="model-thumbnail-preview">
                                     <img
@@ -759,9 +822,7 @@ function Sets({ onOpenSet }: SetsProps) {
                                     />
                                 </div>
                             )}
-
                         </div>
-
 
                         <label>Modelos participantes</label>
 
@@ -790,11 +851,10 @@ function Sets({ onOpenSet }: SetsProps) {
                             {selectedModels.length} modelo(s) selecionado(s)
                         </p>
 
-
                         <div className="modal-footer">
                             <button
                                 className="secondary-button"
-                                onClick={() => setShowForm(false)}
+                                onClick={resetForm}
                                 disabled={saving}
                             >
                                 Fechar
@@ -815,7 +875,8 @@ function Sets({ onOpenSet }: SetsProps) {
                     </div>
                 </div>
             )}
-            {showAutoForm && (
+
+            {showAutoForm && editingEnabled && (
                 <div className="modal-overlay">
                     <div className="modal">
                         <div className="modal-header">
@@ -925,8 +986,11 @@ function Sets({ onOpenSet }: SetsProps) {
                                     scannedSetFolders.length === 0
                                 }
                             >
-                                {saving ? "Cadastrando..." : `Cadastrar ${selectedAutoFolders.length} Set(s)`}
+                                {saving
+                                    ? "Cadastrando..."
+                                    : `Cadastrar ${selectedAutoFolders.length} Set(s)`}
                             </button>
+
                             <button
                                 className="secondary-button"
                                 onClick={() => setShowAutoForm(false)}
@@ -937,7 +1001,8 @@ function Sets({ onOpenSet }: SetsProps) {
                     </div>
                 </div>
             )}
-            {showAutoIndexForm && (
+
+            {showAutoIndexForm && editingEnabled && (
                 <div className="modal-overlay">
                     <div className="modal">
                         <div className="modal-header">
@@ -949,11 +1014,11 @@ function Sets({ onOpenSet }: SetsProps) {
 
                             <select
                                 value={autoIndexModelId}
-                                onChange={(e) => {
+                                onChange={(event) => {
                                     setAutoIndexModelId(
-                                        e.target.value === ""
+                                        event.target.value === ""
                                             ? ""
-                                            : Number(e.target.value)
+                                            : Number(event.target.value)
                                     );
 
                                     setScannedIndexSets([]);
@@ -977,6 +1042,7 @@ function Sets({ onOpenSet }: SetsProps) {
                             >
                                 {scanning ? "Verificando..." : "Verificar Sets"}
                             </button>
+
                             {scannedIndexSets.length > 0 && (
                                 <div className="auto-index-list">
                                     <h3>Sets encontrados ({scannedIndexSets.length})</h3>
@@ -987,9 +1053,9 @@ function Sets({ onOpenSet }: SetsProps) {
                                                 <input
                                                     type="checkbox"
                                                     checked={selectedIndexSets.includes(gallerySet.id)}
-                                                    onChange={(e) => {
+                                                    onChange={(event) => {
                                                         setSelectedIndexSets((previous) =>
-                                                            e.target.checked
+                                                            event.target.checked
                                                                 ? [...previous, gallerySet.id]
                                                                 : previous.filter(
                                                                     (id) => id !== gallerySet.id
@@ -1019,6 +1085,7 @@ function Sets({ onOpenSet }: SetsProps) {
                                     ))}
                                 </div>
                             )}
+
                             {indexingAll && (
                                 <div className="auto-index-progress">
                                     <h3>Indexando mídias...</h3>
@@ -1042,6 +1109,7 @@ function Sets({ onOpenSet }: SetsProps) {
                                     </div>
                                 </div>
                             )}
+
                             {autoIndexResults.length > 0 && (
                                 <div className="auto-index-results">
                                     <h3>Resultados da indexação</h3>
@@ -1094,7 +1162,6 @@ function Sets({ onOpenSet }: SetsProps) {
             )}
         </div>
     );
-
 }
 
 export default Sets;
