@@ -16,6 +16,7 @@ import { registerMediaHandlers } from "./mediaHandlers";
 import AuditLog from "../database/models/AuditLog";
 import { registerAuditHandlers } from "./auditHandlers";
 import { registerDashboardHandlers } from "./dashboardHandlers";
+import { validateSetFolders } from "./services/setFolderValidator";
 
 protocol.registerSchemesAsPrivileged([
     {
@@ -61,6 +62,8 @@ function createWindow(): void {
         );
     }
 }
+
+let unavailableSetIds: number[] = [];
 
 app.whenReady().then(async () => {
     protocol.handle("media", async (request) => {
@@ -202,8 +205,12 @@ app.whenReady().then(async () => {
             `${executedMigrations.length} migration(s) executada(s).`
         );
 
+        console.log("Verificando pastas dos Sets...");
+
+        unavailableSetIds = await validateSetFolders();
+
         registerModelHandlers();
-        registerSetHandlers();
+        registerSetHandlers(unavailableSetIds);
         registerMediaHandlers();
         registerAuditHandlers();
         registerDashboardHandlers();

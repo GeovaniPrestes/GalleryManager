@@ -222,6 +222,8 @@ interface ElectronAPI {
     }>>;
 
     openErrorLogsFolder: () => Promise<boolean>;
+
+    getUnavailableSetIds: () => Promise<number[]>;
 }
 
 declare global {

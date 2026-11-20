@@ -4,7 +4,7 @@ import { generateThumbnail, generateThumbnailFromFolder } from "./services/thumb
 import { allowPreviewPath } from "./services/previewAccess";
 import { indexSetMedia, checkSetMediaIndex } from "./services/Media/mediaIndexer";
 import { registerAuditLog } from "./services/auditLogger";
-import { mkdir } from "node:fs/promises";
+import { mkdir, stat } from "node:fs/promises";
 import { resolve, join } from "node:path";
 import { scanSetFolders } from "./services/setFolderScanner";
 import { registerErrorLog } from "./services/errorLogger";
@@ -15,7 +15,11 @@ import Miniset from "../database/models/Miniset";
 import Media from "../database/models/Media";
 import MediaLocation from "../database/models/MediaLocation";
 
-export function registerSetHandlers(): void {
+export function registerSetHandlers(unavailableSetIds: number[]): void {
+
+    ipcMain.handle("sets:get-unavailable", () => {
+        return unavailableSetIds;
+    });
 
     ipcMain.handle("sets:scan-model-folders", async (_event, modelId) => {
         const id = Number(modelId);
@@ -199,6 +203,12 @@ export function registerSetHandlers(): void {
             throw new Error("A pasta do set é obrigatória.");
         }
 
+        const folderStats = await stat(folderPath);
+
+        if (!folderStats.isDirectory()) {
+            throw new Error("O caminho selecionado não é uma pasta válida.");
+        }
+
         const existingSet = await GallerySet.findOne({
             where: { folderPath }
         });
@@ -206,7 +216,6 @@ export function registerSetHandlers(): void {
         if (existingSet) {
             throw new Error("Essa pasta já está cadastrada em outro set.");
         }
-
 
         const uniqueModelIds = [...new Set(modelIds)];
 
@@ -402,6 +411,12 @@ export function registerSetHandlers(): void {
 
             await transaction.commit();
 
+            const unavailableIndex = unavailableSetIds.indexOf(id);
+
+            if (unavailableIndex !== -1) {
+                unavailableSetIds.splice(unavailableIndex, 1);
+            }
+
             if (Object.keys(changes).length > 0) {
                 await registerAuditLog({
                     entity: "GallerySet",
@@ -496,6 +511,12 @@ export function registerSetHandlers(): void {
             }
 
             await transaction.commit();
+
+            const unavailableIndex = unavailableSetIds.indexOf(setId);
+
+            if (unavailableIndex !== -1) {
+                unavailableSetIds.splice(unavailableIndex, 1);
+            }
 
             for (const mediaLog of deletedMediaLogs) {
                 await registerAuditLog({

@@ -11,6 +11,7 @@ function Sets({ onOpenSet }: SetsProps) {
     const [models, setModels] = useState<ModelRecord[]>([]);
     const [selectedModels, setSelectedModels] = useState<number[]>([]);
     const [loading, setLoading] = useState(true);
+    const [unavailableSetIds, setUnavailableSetIds] = useState<number[]>([]);
 
     const [showForm, setShowForm] = useState(false);
     const [name, setName] = useState("");
@@ -29,6 +30,14 @@ function Sets({ onOpenSet }: SetsProps) {
         folderPath: string;
         alreadyRegistered: boolean;
     }>>([]);
+
+    const [showUnavailableOnly, setShowUnavailableOnly] = useState(false);
+
+    const filteredSets = showUnavailableOnly
+        ? sets.filter((gallerySet) =>
+            unavailableSetIds.includes(gallerySet.id)
+        )
+        : sets;
 
     const [selectedAutoFolders, setSelectedAutoFolders] = useState<string[]>([]);
 
@@ -185,13 +194,15 @@ function Sets({ onOpenSet }: SetsProps) {
 
     async function loadSets() {
         try {
-            const [setsResult, modelsResult] = await Promise.all([
+            const [setsResult, modelsResult, unavailableResult] = await Promise.all([
                 window.electronAPI.listSets(),
-                window.electronAPI.listModels()
+                window.electronAPI.listModels(),
+                window.electronAPI.getUnavailableSetIds()
             ]);
 
             setSets(setsResult);
             setModels(modelsResult);
+            setUnavailableSetIds(unavailableResult);
         } catch (error) {
             console.error("Erro ao carregar sets:", error);
         } finally {
@@ -528,20 +539,31 @@ function Sets({ onOpenSet }: SetsProps) {
 
             <div className="sets-toolbar">
                 <span>
-                    {sets.length} sets cadastrados
+                    {filteredSets.length} {showUnavailableOnly
+                        ? "Sets indisponíveis"
+                        : "Sets cadastrados"}
                 </span>
+
+                <button
+                    className={showUnavailableOnly ? "primary-button" : "secondary-button"}
+                    onClick={() => setShowUnavailableOnly(!showUnavailableOnly)}
+                >
+                    {showUnavailableOnly
+                        ? "Mostrar todos"
+                        : "Somente indisponíveis"}
+                </button>
             </div>
 
             {loading ? (
                 <p>Carregando sets...</p>
-            ) : sets.length === 0 ? (
+            ) : filteredSets.length === 0 ? (
                 <div className="empty-state">
                     <h3>Nenhum set cadastrado</h3>
                     <p>Adicione seu primeiro set à biblioteca.</p>
                 </div>
             ) : (
                 <div className="sets-grid">
-                    {sets.map((gallerySet) => (
+                    {filteredSets.map((gallerySet) => (
                         <div className="set-card" key={gallerySet.id}>
                             <div className="set-thumbnail">
                                 {gallerySet.thumbnailPath ? (
@@ -556,6 +578,12 @@ function Sets({ onOpenSet }: SetsProps) {
 
                             <div className="set-info">
                                 <h3>{gallerySet.name}</h3>
+
+                                {unavailableSetIds.includes(gallerySet.id) && (
+                                    <span className="set-folder-unavailable">
+                                        Pasta indisponível
+                                    </span>
+                                )}
 
                                 <p>
                                     {gallerySet.description || "Sem descrição"}
@@ -592,31 +620,40 @@ function Sets({ onOpenSet }: SetsProps) {
                                 <button
                                     className="primary-button"
                                     onClick={() => onOpenSet(gallerySet)}
+                                    disabled={unavailableSetIds.includes(gallerySet.id)}
                                 >
                                     Abrir Set
                                 </button>
+
                                 <button
                                     className="secondary-button"
                                     onClick={() => handleEditSet(gallerySet)}
                                 >
                                     Editar
                                 </button>
+
                                 <button
                                     className="delete-button"
                                     onClick={() => handleDeleteSet(gallerySet)}
                                 >
                                     Excluir
                                 </button>
+
                                 <button
                                     className="secondary-button"
                                     onClick={() => handleScanMinisets(gallerySet)}
+                                    disabled={unavailableSetIds.includes(gallerySet.id)}
                                 >
                                     Indexar subpastas
                                 </button>
+
                                 <button
                                     className="primary-button"
                                     onClick={() => handleIndexMedia(gallerySet)}
-                                    disabled={indexingSetId !== null}
+                                    disabled={
+                                        unavailableSetIds.includes(gallerySet.id) ||
+                                        indexingSetId !== null
+                                    }
                                 >
                                     {indexingSetId === gallerySet.id
                                         ? "Indexando mídias..."

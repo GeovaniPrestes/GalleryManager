@@ -88,4 +88,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
     openErrorLogsFolder: () =>
         ipcRenderer.invoke("logs:open-folder"),
+
+    getUnavailableSetIds: () =>
+        ipcRenderer.invoke("sets:get-unavailable"),
 });

@@ -1,9 +1,8 @@
 import sharp from "sharp";
 import { app } from "electron";
 import { join, extname } from "node:path";
-import { mkdir, readdir } from "node:fs/promises";
+import { mkdir, readdir, unlink } from "node:fs/promises";
 import { createHash } from "node:crypto";
-import { unlink } from "node:fs/promises";
 
 const ffmpeg = require("fluent-ffmpeg");
 const ffmpegPath = require("ffmpeg-static") as string | null;
@@ -12,37 +11,61 @@ if (ffmpegPath) {
     ffmpeg.setFfmpegPath(ffmpegPath);
 }
 
-export async function generateThumbnail(
-    originalPath: string
-): Promise<string> {
-    const thumbnailDirectory = join(
-        app.getPath("userData"),
-        "thumbnails"
-    );
-
+export async function generateThumbnail(originalPath: string): Promise<string> {
+    const thumbnailDirectory = join(app.getPath("userData"), "thumbnails");
     await mkdir(thumbnailDirectory, { recursive: true });
 
     const fileHash = createHash("sha256")
         .update(originalPath.toLowerCase())
         .digest("hex");
 
-    const thumbnailPath = join(
-        thumbnailDirectory,
-        `${fileHash}.webp`
-    );
+    const thumbnailPath = join(thumbnailDirectory, `${fileHash}.webp`);
+    const temporaryPath = join(thumbnailDirectory, `${fileHash}_fallback.jpg`);
 
-    await sharp(originalPath, {
-        failOn: "none"
-    })
-        .rotate()
-        .resize(400, 400, {
-            fit: "inside",
-            withoutEnlargement: true
-        })
-        .webp({ quality: 80 })
-        .toFile(thumbnailPath);
+    try {
+        await sharp(originalPath, { failOn: "none" })
+            .rotate()
+            .resize(400, 400, {
+                fit: "inside",
+                withoutEnlargement: true
+            })
+            .webp({ quality: 80 })
+            .toFile(thumbnailPath);
 
-    return thumbnailPath;
+        return thumbnailPath;
+    } catch (sharpError) {
+        console.warn("Sharp não conseguiu gerar a thumbnail. Tentando FFmpeg:", originalPath);
+
+        try {
+            await new Promise<void>((resolve, reject) => {
+                ffmpeg(originalPath)
+                    .outputOptions([
+                        "-frames:v 1",
+                        "-vf scale=400:400:force_original_aspect_ratio=decrease"
+                    ])
+                    .output(temporaryPath)
+                    .on("end", resolve)
+                    .on("error", reject)
+                    .run();
+            });
+
+            await sharp(temporaryPath)
+                .webp({ quality: 80 })
+                .toFile(thumbnailPath);
+
+            return thumbnailPath;
+        } catch (ffmpegError) {
+            console.error("Sharp e FFmpeg não conseguiram gerar a thumbnail:", {
+                originalPath,
+                sharpError,
+                ffmpegError
+            });
+
+            throw ffmpegError;
+        } finally {
+            await unlink(temporaryPath).catch(() => { });
+        }
+    }
 }
 
 export async function generateVideoThumbnail(
