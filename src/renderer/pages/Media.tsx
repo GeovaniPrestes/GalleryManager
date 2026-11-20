@@ -15,10 +15,26 @@ function Media() {
     const [dragOrigin, setDragOrigin] = useState({ x: 0, y: 0 });
     const [mediaFilter, setMediaFilter] = useState("all");
     const [searchTerm, setSearchTerm] = useState("");
+    const [selectedSet, setSelectedSet] = useState("all");
+    const [sets, setSets] = useState<any[]>([]);
 
     const filteredMedia = media.filter(item => {
-        if (mediaFilter === "all") return true;
-        return item.mediaType === mediaFilter;
+        const matchesType =
+            mediaFilter === "all" || item.mediaType === mediaFilter;
+
+        const matchesSearch =
+            !searchTerm ||
+            item.locations?.some((location: any) =>
+                location.fileName.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+
+        const matchesSet =
+            selectedSet === "all" ||
+            item.locations?.some(
+                (location: any) => String(location.gallerySet?.id) === selectedSet
+            );
+
+        return matchesType && matchesSearch && matchesSet;
     });
 
     async function loadMedia() {
@@ -81,6 +97,19 @@ function Media() {
     }, []);
 
     useEffect(() => {
+        async function loadSets() {
+            try {
+                const result = await window.electronAPI.listSets();
+                setSets(result);
+            } catch (error) {
+                console.error("Erro ao carregar sets:", error);
+            }
+        }
+
+        loadSets();
+    }, []);
+
+    useEffect(() => {
         if (!selectedMedia) return;
 
         function handleKeyDown(event: KeyboardEvent) {
@@ -112,7 +141,27 @@ function Media() {
 
     return (
         <div className="media-page">
+            <div className="media-search">
+                <input
+                    type="text"
+                    placeholder="Pesquisar pelo nome do arquivo..."
+                    value={searchTerm}
+                    onChange={(event) => setSearchTerm(event.target.value)}
+                />
+            </div>
             <div className="media-filters">
+                <select
+                    value={selectedSet}
+                    onChange={(event) => setSelectedSet(event.target.value)}
+                >
+                    <option value="all">Todos os Sets</option>
+
+                    {sets.map(set => (
+                        <option key={set.id} value={String(set.id)}>
+                            {set.name}
+                        </option>
+                    ))}
+                </select>
                 <button
                     className={mediaFilter === "all" ? "active" : ""}
                     onClick={() => setMediaFilter("all")}
